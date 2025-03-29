@@ -1,8 +1,8 @@
-[![Mirakurun](https://gist.githubusercontent.com/kanreisa/0ab27d7771e97edce5a24cc81b9b8ce6/raw/e50683f1c4e7d1a13e9ef468f8cc945b0dbc853c/logo-mirakurun.svg)](https://github.com/Chinachu/Mirakurun)
+[![Mirakurun](https://gist.githubusercontent.com/kanreisa/0ab27d7771e97edce5a24cc81b9b8ce6/raw/8e08d3d91390794b139ed593e3a834a8b41f651c/logo-mirakurun_2025-03-29.svg)](https://github.com/Chinachu/Mirakurun)
 
 # Mirakurun
 
-DVR Tuner Server for Japanese TV which designed for the "Air" (in development codename).
+A Japanese digital TV tuner API server specifically designed for "Air" (code name of the app in development).
 
 [![npm version][npm-img]][npm-url]
 [![npm downloads][downloads-image]][downloads-url]
@@ -10,6 +10,7 @@ DVR Tuner Server for Japanese TV which designed for the "Air" (in development co
 [![tip for next commit](https://tip4commit.com/projects/43158.svg)](https://tip4commit.com/github/Chinachu/Mirakurun)
 [![Backers on Open Collective](https://opencollective.com/Mirakurun/backers/badge.svg)](#backers)
 [![Sponsors on Open Collective](https://opencollective.com/Mirakurun/sponsors/badge.svg)](#sponsors)
+[**CHANGELOG**](CHANGELOG.md) | [**Setup Guide**](doc/Platforms.md) | [**Configuration**](doc/Configuration.md)
 
 ## このforkについて
 Forked from otya128/MMirakurun
@@ -71,55 +72,42 @@ TSIDによる指定に対応しているDVBデバイスと併用する場合は�
 
 [![dockeri.co](https://dockeri.co/image/chinachu/mirakurun)][docker-url]
 
-see: available [Tags](https://hub.docker.com/r/chinachu/mirakurun/tags) (Docker Hub)
+[**English**](README.md) | [**日本語**](README.ja.md)
 
-### Quick Install
+## Docker
 
-```sh
-mkdir ~/mirakurun/
-cd ~/mirakurun/
-wget https://raw.githubusercontent.com/Chinachu/Mirakurun/refs/heads/release/4.0.0/docker/docker-compose.yml
-docker compose pull
-docker compose run --rm -e SETUP=true mirakurun
-docker compose up -d
-```
+[![dockeri.co](https://dockeri.co/image/chinachu/mirakurun)][docker-url]
 
-see: [doc/Platforms.md](doc/Platforms.md)
+Reference: List of available [tags](https://hub.docker.com/r/chinachu/mirakurun/tags) (Docker Hub)
 
 ## Features
 
-* RESTful API (Open API) - has designed like HTTP version of Spinel
-* Unix Sockets / TCP
-* Advanced Tuner Process Management
-* Priority Management
-* Tuner Device Pooling
-* Integrated MPEG-2 TS Parser, Filter
-* Realtime EPG Parser
-* Supports most Tuner Devices (chardev, DVB / ISDB-T, ISDB-S, DVB-S2)
-* Channel Scan
-* IPv6 Support
-* [Multiplexing Mirakuruns](doc/Mirakuruns.md)
-* Web UI
-* IPTV Server (M3U8 Playlist, XMLTV)
+- HTTP RESTful API (Swagger / Open API 2.0)
+- Advanced tuner process management
+- Multiple stream broadcasting from a single tuning
+- Stream priority
+- MPEG-2 TS parser, filter
+- Real-time EPG parser
+- Support for various tuner devices and hybrid environments (chardev, DVB / ISDB-T, ISDB-S, DVB-S2)
+- Automatic channel scanning
+- Web UI
+- IPTV server (M3U8 playlist, XMLTV)
 
 #### Figure: Variety of the MPEG-2 TS Stream API
 
-![](https://gist.githubusercontent.com/kanreisa/0ab27d7771e97edce5a24cc81b9b8ce6/raw/e50683f1c4e7d1a13e9ef468f8cc945b0dbc853c/mirakurun-fig-api-variety.svg)
+![](https://gist.githubusercontent.com/kanreisa/0ab27d7771e97edce5a24cc81b9b8ce6/raw/7409e229648e00b55404f9e8342dccb58bbb4ac4/mirakurun-fig-api-variety2.svg)
 
 #### Figure: Stream Flow
 
-![](https://gist.githubusercontent.com/kanreisa/0ab27d7771e97edce5a24cc81b9b8ce6/raw/e50683f1c4e7d1a13e9ef468f8cc945b0dbc853c/mirakurun-fig-flow-stream.svg)
+![](https://gist.githubusercontent.com/kanreisa/0ab27d7771e97edce5a24cc81b9b8ce6/raw/7409e229648e00b55404f9e8342dccb58bbb4ac4/mirakurun-fig-flow-stream2.svg)
 
-## Requirements / Supported Platforms
+## Setup Guide
 
-* [Node.js](http://nodejs.org/) 18, 20, 22
-* Linux w/ [Docker](https://hub.docker.com/r/chinachu/mirakurun)
+👉 [**Setup Guide**](doc/Platforms.md)
 
-see: [doc/Platforms.md](doc/Platforms.md)
+## Configuration
 
-## **Install / Update / Uninstall / CLI**
-
-see: [doc/Platforms.md](doc/Platforms.md)
+👉 [**Configuration**](doc/Configuration.md)
 
 ## Web UI
 
@@ -131,28 +119,27 @@ http://_your_mirakurun_ip_:40772/
 http://_your_mirakurun_ip_:40772/api/debug
 ```
 
-
 ## Client Implementations
 
-* [Rivarun](https://github.com/Chinachu/Rivarun)
-* [BonDriver_Mirakurun](https://github.com/Chinachu/BonDriver_Mirakurun)
-* Mirakurun Client ([Built-in](https://github.com/Chinachu/Mirakurun/blob/master/src/client.ts))
-  * "Air" (in development codename)
-  * [Chinachu γ](https://github.com/Chinachu/Chinachu/wiki/Gamma-Installation-V2)
-  * [EPGStation](https://github.com/l3tnun/EPGStation)
+- [Rivarun](https://github.com/Chinachu/Rivarun)
+- [BonDriver_Mirakurun](https://github.com/Chinachu/BonDriver_Mirakurun)
+- Mirakurun Client ([Built-in](https://github.com/Chinachu/Mirakurun/blob/master/src/client.ts))
+  - "Air" (in development codename)
+  - [Chinachu γ](https://github.com/Chinachu/Chinachu/wiki/Gamma-Installation-V2)
+  - [EPGStation](https://github.com/l3tnun/EPGStation)
 
 ## Contributing
 
-[CONTRIBUTING.md](CONTRIBUTING.md)
+- [CONTRIBUTING.md](CONTRIBUTING.md)
 
-## Supporting
+## Donations
 
-* [Tip4Commit](https://tip4commit.com/github/Chinachu/Mirakurun) (BTC) - to Every Committers
-* [Open Collective](https://opencollective.com/Mirakurun) (USD) - Pool (TBD)
+- [Tip4Commit](https://tip4commit.com/github/Chinachu/Mirakurun) (BTC) - Distributed to all committers
+- [Open Collective](https://opencollective.com/Mirakurun) (USD) - Pool (purpose undecided)
 
 ## Discord Community
 
-* Invitation: https://discord.gg/X7KU5W9
+- Invitation: https://discord.gg/X7KU5W9
 
 ## Contributors
 
@@ -184,11 +171,9 @@ Support this project by becoming a sponsor. Your logo will show up here with a l
 
 &copy; 2016- [kanreisa](https://github.com/kanreisa).
 
-* Code: [Apache License, Version 2.0](LICENSE)
-* Docs: [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)
-* Logo: [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/)
-
-**Commercial License / Support** is provided by [Pixely LLC](https://pixely.jp/).
+- Code: [Apache License, Version 2.0](LICENSE)
+- Docs: [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)
+- Logo: [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/)
 
 [npm-img]: https://img.shields.io/npm/v/mirakurun.svg
 [npm-url]: https://npmjs.org/package/mirakurun
