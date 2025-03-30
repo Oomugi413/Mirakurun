@@ -56,7 +56,6 @@ interface ScanConfig {
  * 0xC0 = データサービス
  */
 const serviceTypes = [0x01, 0x02, 0xA1, 0xA4, 0xA5, 0xAD, 0xC0];
-const useNIT: Intl.CollatorOptions
 /**
  * Options for string comparison when sorting channels
  */
