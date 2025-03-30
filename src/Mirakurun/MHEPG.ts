@@ -69,7 +69,7 @@ interface EventState {
     };
     audio: {
         version: VersionRecord<VersionRecord>; // basic
-        _audios: { [componentTag: number]: db.ProgramAudio };
+        _audios: { [componentTag: number]: apid.ProgramAudio };
     };
     series: {
         version: VersionRecord; // basic
