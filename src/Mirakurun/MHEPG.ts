@@ -16,6 +16,7 @@
 */
 import { getProgramItemId } from "./Program";
 import * as db from "./db";
+import * as apid from "../../api";
 import _ from "./_";
 import { MHContentDescriptorItem, MHExtendedEventItem } from "arib-mmt-tlv-ts/mmt-si-descriptor.js";
 import {  MHEventInformationTable, MMT_SI_TABLE_MH_EIT_PF } from "arib-mmt-tlv-ts/mmt-si.js";
@@ -75,7 +76,7 @@ interface EventState {
     };
     group: {
         version: VersionRecord<VersionRecord>; // basic
-        _groups: db.ProgramRelatedItem[][];
+        _groups: apid.ProgramRelatedItem[][];
     };
 
     present?: true;
@@ -244,7 +245,7 @@ export default class EPG {
                         _.program.set(state.programId, {
                             video: {
                                 type: null,
-                                resolution: <db.ProgramVideoResolution> VIDEO_RESOLUTION[d.videoResolution] || null,
+                                resolution: <apid.ProgramVideoResolution> VIDEO_RESOLUTION[d.videoResolution] || null,
                                 streamContent: null,
                                 componentType: null
                             }
@@ -358,7 +359,7 @@ function isOutOfDateLv2(eit: MHEventInformationTable, versionRecord: VersionReco
     return versionRecord[eit.tableIdNumber][lv2] !== eit.versionNumber;
 }
 
-function getGenre(content: MHContentDescriptorItem): db.ProgramGenre {
+function getGenre(content: MHContentDescriptorItem): apid.ProgramGenre {
     return {
         lv1: content.contentNibbleLevel1,
         lv2: content.contentNibbleLevel2,
@@ -367,16 +368,16 @@ function getGenre(content: MHContentDescriptorItem): db.ProgramGenre {
     };
 }
 
-function getLangCode(buffer: Buffer): db.ProgramAudioLanguageCode {
+function getLangCode(buffer: Buffer): apid.ProgramAudioLanguageCode {
     for (const code in ISO_639_LANG_CODE) {
         if (ISO_639_LANG_CODE[code].compare(buffer) === 0) {
-            return code as db.ProgramAudioLanguageCode;
+            return code as apid.ProgramAudioLanguageCode;
         }
     }
     return "etc";
 }
 
-function getRelatedProgramItem(event: any): db.ProgramRelatedItem {
+function getRelatedProgramItem(event: any): apid.ProgramRelatedItem {
     return {
         type: (
             this.group_type === 1 ? "shared" :
