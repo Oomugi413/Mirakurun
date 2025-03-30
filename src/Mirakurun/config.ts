@@ -53,7 +53,6 @@ const {
 
 const IS_DOCKER = DOCKER === "YES";
 
-
 type Server = Readonly<apid.ConfigServer>;
 type Tuner = Readonly<apid.ConfigTunersItem>;
 type Channel = Readonly<apid.ConfigChannelsItem>;
