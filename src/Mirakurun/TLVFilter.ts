@@ -18,6 +18,7 @@ import { Writable } from "stream";
 import EventEmitter = require("eventemitter3");
 import { StreamInfo, decodeUTF8 } from "./common";
 import * as log from "./log";
+import * as apid from "../../api";
 import status from "./status";
 import _ from "./_";
 import { getProgramItemId } from "./Program";
@@ -38,7 +39,6 @@ import { TLVNetworkInformationTable } from "arib-mmt-tlv-ts/tlv-si.js";
 import MHEPG from "./MHEPG";
 import { MH_LOGO_TRANSMISSION_TYPE_DIRECT } from "arib-mmt-tlv-ts/mmt-si-descriptor.js";
 import { mjdBCDToUnixEpoch } from "arib-mmt-tlv-ts/utils.js";
-import * as db from "./db";
 
 interface TLVFilterOptions {
     readonly output?: Writable;
@@ -290,7 +290,7 @@ export default class TLVFilter extends EventEmitter {
         }
 
         const streamIdList = nit.tlvStreams.map(s => s.tlvStreamId);
-        const channels: db.Channel[] = streamIdList.map(s => ({
+        const channels: apid.Channel[] = streamIdList.map(s => ({
             type: "BS4K",
             channel: `${s}`
         }));
@@ -328,7 +328,7 @@ export default class TLVFilter extends EventEmitter {
             return;
         }
 
-        const _services: Partial<db.Service>[] = [];
+        const _services: Partial<apid.Service>[] = [];
 
         for (const service of sdt.services) {
             if (this._serviceIds.has(service.serviceId) === false) {
