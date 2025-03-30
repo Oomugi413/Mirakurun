@@ -45,7 +45,7 @@ export interface Channel {
     services?: Service[];
 }
 
-export type ChannelType = "GR" | "BS" | "CS" | "SKY";
+export type ChannelType = "GR" | "BS" | "CS" | "SKY" | "BS4K";
 
 export interface Service {
     id: ServiceItemId;
@@ -275,6 +275,8 @@ export interface ConfigServer {
     disableWebUI?: boolean;
     allowIPv4CidrRanges?: string[];
     allowIPv6CidrRanges?: string[];
+    useTSId?: boolean;
+    useStreamId?: boolean;
     allowOrigins: string[];
     allowPNA: boolean;
     tsplayEndpoint: string;
@@ -308,6 +310,7 @@ export interface ConfigTunersItem {
     remoteMirakurunDecoder?: boolean;
     /** CAS processor command if needed. */
     decoder?: string;
+    tlvDecoder?: string;
     /** `true` to **disable** this tuner. */
     isDisabled?: boolean;
 }
@@ -401,12 +404,14 @@ export interface Status {
     };
     epg: {
         gatheringNetworks: NetworkId[];
+        gatheringChannels: string[];
         storedEvents: number;
     };
     rpcCount: number;
     streamCount: {
         tunerDevice: number;
         tsFilter: number;
+        tlvFilter: number;
         decoder: number;
     };
     errorCount: {
