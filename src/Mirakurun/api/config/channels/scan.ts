@@ -161,7 +161,7 @@ function formatChannelName(format: string, ch: number, subch?: number): string {
  * @param option The scan options including channel type, ranges, and formatting
  * @returns A scan configuration with channels to scan and associated settings
  */
-export function generateScanConfig(option: ChannelScanOption, usenit:useNIT): ScanConfig | undefined {
+export function generateScanConfig(option: ChannelScanOption, usenit: useNIT): ScanConfig | undefined {
     // Remove undefined properties from options
     Object.keys(option).forEach(key => option[key] === undefined && delete option[key]);
 
@@ -460,7 +460,7 @@ async function runChannelScan(
     refresh: boolean,
     outputWriter?: (text: string) => void,
     skipCh: number[] = [],
-    useNIT: boolean,
+    useNIT: boolean
 ): Promise<apid.ConfigChannels> {
     try {
         // Initialize scan data
@@ -556,7 +556,6 @@ async function runChannelScan(
             appendToLog("-- dry run --\n\n");
         }
 
-
         // Print scan start message
         updateStepStatus(
             { status: "started" as const, type },
@@ -640,7 +639,7 @@ async function runChannelScan(
                         },
                         `# scan has skipped due to the "refresh = false" option because an existing config was found.\n\n`
                     );
-  
+
                     continue; // Skip to next channel
                 }
             }
@@ -656,8 +655,8 @@ async function runChannelScan(
                     id: "Mirakurun:API:channelScan",
                     priority: 1
                 });
-             services = r.services;
-             channels = r.channels;
+                services = r.services;
+                channels = r.channels;
             } catch (error) {
                 // Handle errors (often no signal)
                 const isNoSignalError = /stream has closed before get network/.test(String(error));
