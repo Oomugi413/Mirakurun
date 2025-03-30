@@ -33,6 +33,7 @@ interface ChannelScanOption {
     setDisabledOnAdd?: boolean;        // Set disabled flag on newly added channels
     refresh?: boolean;                 // Refresh existing channel configs
     channelNameFormat?: string;        // Custom channel name format
+    useNIT?: boolean;
 }
 
 /**
@@ -55,7 +56,7 @@ interface ScanConfig {
  * 0xC0 = データサービス
  */
 const serviceTypes = [0x01, 0x02, 0xA1, 0xA4, 0xA5, 0xAD, 0xC0];
-
+const useNIT: Intl.CollatorOptions
 /**
  * Options for string comparison when sorting channels
  */
@@ -161,7 +162,7 @@ function formatChannelName(format: string, ch: number, subch?: number): string {
  * @param option The scan options including channel type, ranges, and formatting
  * @returns A scan configuration with channels to scan and associated settings
  */
-export function generateScanConfig(option: ChannelScanOption, usenit: useNIT): ScanConfig | undefined {
+export function generateScanConfig(option: ChannelScanOption): ScanConfig | undefined {
     // Remove undefined properties from options
     Object.keys(option).forEach(key => option[key] === undefined && delete option[key]);
 
@@ -200,14 +201,14 @@ export function generateScanConfig(option: ChannelScanOption, usenit: useNIT): S
             setDisabledOnAdd: satelliteOptions.setDisabledOnAdd
         };
     }
-    if (usenit && option.type === "BS") {
+    if (option.useNIT && option.type === "BS") {
         return {
             channels: ["16625"], // default TS
             scanMode: satelliteOptions.scanMode,
             setDisabledOnAdd: satelliteOptions.setDisabledOnAdd
         };
     }
-    if (usenit && option.type === "CS") {
+    if (option.useNIT && option.type === "CS") {
         return {
             channels: ["24608", "28736"], // default TS
             scanMode: satelliteOptions.scanMode,
@@ -842,7 +843,7 @@ export const put: Operation = async (req, res) => {
     const dryRun = Boolean(req.query.dryRun);
     const type = req.query.type as apid.ChannelType;
     const refresh = Boolean(req.query.refresh);
-    const useNIT = type === "BS4K" ? !!_.config.server.useStreamId : (type === "BS" || type === "CS" ? !!_.config.server.useTSId : false);
+    const useNITad = type === "BS4K" ? !!_.config.server.useStreamId : (type === "BS" || type === "CS" ? !!_.config.server.useTSId : false);
 
     // Parse skipCh parameter
     const skipCh: number[] = req.query?.skipCh as any as number[] || [];
@@ -859,11 +860,12 @@ export const put: Operation = async (req, res) => {
         scanMode: req.query.scanMode as apid.ChannelScanMode,
         setDisabledOnAdd: req.query.setDisabledOnAdd !== undefined ?
             Boolean(req.query.setDisabledOnAdd) : undefined,
-        scanMode: req.query.scanMode as apid.ChannelScanMode
+        scanMode: req.query.scanMode as apid.ChannelScanMode,
+        useNIT: useNITad
     };
 
     // Generate scan configuration
-    const scanConfig = generateScanConfig(channelOptions, useNIT);
+    const scanConfig = generateScanConfig(channelOptions, useNITad);
 
     // Handle missing scan configuration
     if (!scanConfig) {
@@ -883,7 +885,7 @@ export const put: Operation = async (req, res) => {
         res.end();
 
         // Run scan in background
-        runChannelScan(scanConfig, dryRun, type, refresh, null, skipCh, useNIT)
+        runChannelScan(scanConfig, dryRun, type, refresh, null, skipCh, useNITad)
             .catch(error => {
                 console.error("Channel scan error:", error);
                 // Error is used only when the scan is stopped
@@ -909,7 +911,7 @@ export const put: Operation = async (req, res) => {
         };
 
         // Run scan with output streaming
-        await runChannelScan(scanConfig, dryRun, type, refresh, logTextOutput, skipCh, useNIT);
+        await runChannelScan(scanConfig, dryRun, type, refresh, logTextOutput, skipCh, useNITad);
         res.end();
     } catch (error) {
         console.error("Channel scan error:", error);
