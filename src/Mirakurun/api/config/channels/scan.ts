@@ -859,7 +859,6 @@ export const put: Operation = async (req, res) => {
         channelNameFormat: req.query.channelNameFormat as string,
         scanMode: req.query.scanMode as apid.ChannelScanMode,
         setDisabledOnAdd: req.query.setDisabledOnAdd !== undefined ? Boolean(req.query.setDisabledOnAdd) : undefined,
-        scanMode: req.query.scanMode as apid.ChannelScanMode,
         useNIT: useNITad
     };
 
