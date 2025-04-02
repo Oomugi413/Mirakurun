@@ -229,6 +229,7 @@ export interface JobItem {
     status: "queued" | "standby" | "running" | "finished";
     retryCount: number;
 
+    isRerunnable?: boolean;
     retryOnAbort?: boolean;
     retryOnFail?: boolean;
     retryMax?: number;
@@ -265,6 +266,8 @@ export interface ConfigServer {
     disableIPv6?: boolean;
     logLevel?: LogLevel;
     maxLogHistory?: number;
+    jobMaxRunning?: number;
+    jobMaxStandby?: number;
     maxBufferBytesBeforeReady?: number;
     eventEndTimeout?: number;
     programGCJobSchedule?: string;

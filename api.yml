@@ -458,6 +458,8 @@ definitions:
           - finished
       retryCount:
         type: integer
+      isRerunnable:
+        type: boolean
       retryOnAbort:
         type: boolean
       retryOnFail:
@@ -542,6 +544,14 @@ definitions:
       maxLogHistory:
         type: integer
         minimum: 0
+      jobMaxRunning:
+        type: integer
+        minimum: 1
+        maximum: 100
+      jobMaxStandby:
+        type: integer
+        minimum: 1
+        maximum: 100
       maxBufferBytesBeforeReady:
         type: integer
       eventEndTimeout:
