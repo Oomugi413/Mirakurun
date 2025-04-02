@@ -362,7 +362,7 @@ export class Service {
     private async _checkToAdd(channel: ChannelItem, serviceId: number): Promise<void> {
         log.info("ChannelItem#'%s' serviceId=%d check has started", channel.name, serviceId);
 
-        let services: Awaited<ReturnType<typeof apid.Service[]>>;
+        let services: Awaited<ReturnType<apid.Service[]>>;
         try {
             services = await _.tuner.getServices(channel);
         } catch (e) {
