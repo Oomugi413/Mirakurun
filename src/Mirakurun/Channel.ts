@@ -96,7 +96,7 @@ export class Channel {
                 return;
             }
 
-            if (channel.type !== "GR" && channel.type !== "BS" && channel.type !== "CS" && channel.type !== "SKY") {
+            if (channel.type !== "GR" && channel.type !== "BS" && channel.type !== "CS" && channel.type !== "SKY" && channel.type !== "BS4K") {
                 log.error("invalid type of property `type` in channel#%d (%s) configuration", i, channel.name);
                 return;
             }
@@ -184,6 +184,9 @@ export class Channel {
         const networkIds = [...new Set(_.service.items.map(item => item.networkId))];
 
         for (const networkId of networkIds) {
+            if (networkId === 0xB || networkId === 0xC) {
+                continue;
+            }
             const services = _.service.findByNetworkId(networkId);
             if (services.length === 0) {
                 continue;

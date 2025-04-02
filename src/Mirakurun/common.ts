@@ -46,8 +46,8 @@ export interface StreamInfo {
     };
 }
 
-export const channelTypes: apid.ChannelType[] = ["GR", "BS", "CS", "SKY"];
-
+export const channelTypes: apid.ChannelType[] = ["GR", "BS", "CS", "SKY", "BS4K"];
+export type ChannelType = keyof typeof ChannelTypes;
 export const deepClone = rfdc();
 
 export function updateObject<T, U>(target: T, input: U): boolean;
@@ -125,6 +125,12 @@ export function getTimeFromBCD24(buffer: Uint8Array | Buffer): number {
     time += (buffer[2] >> 4) * 10 + (buffer[2] & 0x0F);
 
     return time * 1000;
+}
+
+const textDecoder = new TextDecoder();
+
+export function decodeUTF8(buffer: Uint8Array) {
+    return textDecoder.decode(buffer, { stream: false });
 }
 
 export function replaceCommandTemplate(template: string, vars: Record<string, string | number>): string {

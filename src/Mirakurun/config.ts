@@ -110,6 +110,13 @@ export async function loadServer(): Promise<Server> {
         config.tsplayEndpoint = "https://mirakurun-secure-contexts-api.pages.dev/tsplay/";
     }
 
+    if (typeof config.useTSId !== "boolean") {
+        config.useTSId = false;
+    }
+    if (typeof config.useStreamId !== "boolean") {
+        config.useStreamId = true;
+    }
+
     // Docker
     if (IS_DOCKER) {
         config.path = "/var/run/mirakurun.sock";
