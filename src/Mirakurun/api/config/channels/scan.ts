@@ -458,9 +458,9 @@ async function runChannelScan(
     dryRun: boolean,
     type: apid.ChannelType,
     refresh: boolean,
+    useNIT: boolean,
     outputWriter?: (text: string) => void,
-    skipCh: number[] = [],
-    useNIT: boolean
+    skipCh: number[] = []
 ): Promise<apid.ConfigChannels> {
     try {
         // Initialize scan data
@@ -701,7 +701,8 @@ async function runChannelScan(
                 type,
                 channel,
                 services,
-                scanConfig.setDisabledOnAdd
+                scanConfig.setDisabledOnAdd,
+                useNIT
             );
 
             // Add newly scanned items to results
@@ -857,14 +858,13 @@ export const put: Operation = async (req, res) => {
         useSubCh: req.query.useSubCh !== undefined ? Boolean(req.query.useSubCh) : undefined,
         channelNameFormat: req.query.channelNameFormat as string,
         scanMode: req.query.scanMode as apid.ChannelScanMode,
-        setDisabledOnAdd: req.query.setDisabledOnAdd !== undefined ?
-            Boolean(req.query.setDisabledOnAdd) : undefined,
+        setDisabledOnAdd: req.query.setDisabledOnAdd !== undefined ? Boolean(req.query.setDisabledOnAdd) : undefined,
         scanMode: req.query.scanMode as apid.ChannelScanMode,
         useNIT: useNITad
     };
 
     // Generate scan configuration
-    const scanConfig = generateScanConfig(channelOptions, useNITad);
+    const scanConfig = generateScanConfig(channelOptions);
 
     // Handle missing scan configuration
     if (!scanConfig) {
@@ -884,7 +884,7 @@ export const put: Operation = async (req, res) => {
         res.end();
 
         // Run scan in background
-        runChannelScan(scanConfig, dryRun, type, refresh, null, skipCh, useNITad)
+        runChannelScan(scanConfig, dryRun, type, refresh, useNITad, null, skipCh)
             .catch(error => {
                 console.error("Channel scan error:", error);
                 // Error is used only when the scan is stopped
@@ -910,7 +910,7 @@ export const put: Operation = async (req, res) => {
         };
 
         // Run scan with output streaming
-        await runChannelScan(scanConfig, dryRun, type, refresh, logTextOutput, skipCh, useNITad);
+        await runChannelScan(scanConfig, dryRun, type, refresh, useNITad, logTextOutput, skipCh);
         res.end();
     } catch (error) {
         console.error("Channel scan error:", error);
