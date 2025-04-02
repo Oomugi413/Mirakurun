@@ -19,6 +19,7 @@ import { stat, mkdir, readFile, writeFile } from "fs/promises";
 import { sleep } from "./common";
 import * as log from "./log";
 import * as db from "./db";
+import * as apid from "../../api";
 import _ from "./_";
 import Event from "./Event";
 import ChannelItem from "./ChannelItem";
@@ -361,7 +362,7 @@ export class Service {
     private async _checkToAdd(channel: ChannelItem, serviceId: number): Promise<void> {
         log.info("ChannelItem#'%s' serviceId=%d check has started", channel.name, serviceId);
 
-        let services: Awaited<ReturnType<typeof _.tuner.getServices>>;
+        let services: Awaited<ReturnType<typeof apid.Service[]>>;
         try {
             services = await _.tuner.getServices(channel);
         } catch (e) {
