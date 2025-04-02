@@ -563,11 +563,11 @@ export default class TSFilter extends EventEmitter {
             return;
         }
 
-        const channelType: typeof channelTypes | undefined = data.network_id === 4 ? "BS" : (data.network_id === 6 || data.network_id === 7 ? "CS" : undefined);
+        const channelType: typeof apid.ChannelType[] | undefined = data.network_id === 4 ? "BS" : (data.network_id === 6 || data.network_id === 7 ? "CS" : undefined);
         if (channelType != null) {
             const tsIdList: number[] = data.transport_streams.map(ts => ts.transport_stream_id);
             const channels: apid.Channel[] = tsIdList.map(tsid => ({
-                type: apid.ChannelType,
+                type: typeof apid.Channel[],
                 channel: `${tsid}`
             }));
             this.emit("networkStreams", channels);
