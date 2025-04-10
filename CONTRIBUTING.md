@@ -34,7 +34,7 @@ git submodule update --init
 # Docker on Linux
 npm run docker:build
 
-# Linux
+# Linux / Win32
 npm install
 npm run build
 ```
@@ -47,6 +47,9 @@ npm run docker:run
 
 # Linux
 sudo npm run start
+
+# Win32 (Windows PowerShell as Admin)
+npm run start.win32
 ```
 
 ### Debug
@@ -57,6 +60,9 @@ npm run docker:debug
 
 # Linux
 sudo npm run debug
+
+# Win32 (Windows PowerShell as Admin)
+npm run debug.win32
 ```
 
 If you've any questions, please ask on Discord.

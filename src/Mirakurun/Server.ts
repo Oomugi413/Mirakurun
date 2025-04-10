@@ -209,7 +209,9 @@ export class Server {
                     });
                 });
 
-                fs.chmodSync(address, "777");
+                if (process.platform !== "win32") {
+                    fs.chmodSync(address, "777");
+                }
             } else {
                 await new Promise<void>(resolve => {
                     server.listen(serverConfig.port, address, () => {
