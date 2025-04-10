@@ -18,6 +18,7 @@ import { dirname } from "path";
 import { hostname } from "os";
 import { existsSync, readdirSync } from "fs";
 import { mkdir, copyFile, readFile, writeFile } from "fs/promises";
+import * as fs from "fs";
 import * as yaml from "js-yaml";
 import * as ipnum from "ip-num";
 import Queue from "promise-queue";
