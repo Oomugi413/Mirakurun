@@ -41,3 +41,4 @@ if (process.platform === "linux" || process.platform === "darwin") {
         console.log("Note: running in Docker.");
         process.exit(0);
     }
+}

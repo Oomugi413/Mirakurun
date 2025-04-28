@@ -197,8 +197,8 @@ export class Server {
             this._servers.add(server);
             this._rpcs.add(createRPCServer(server));
 
-            if (regexp.unixDomainSocket.test(address)) {
-                if (fs.existsSync(address)) {
+            if (regexp.unixDomainSocket.test(address) || regexp.windowsNamedPipe.test(address)) {
+                if (process.platform !== "win32" && fs.existsSync(address) === true) {
                     fs.unlinkSync(address);
                 }
 

@@ -16,6 +16,7 @@
 Buffer.poolSize = 0; // disable memory pool
 
 require("dotenv").config();
+const path = require("path");
 import { execSync } from "child_process";
 import { createHash } from "crypto";
 
@@ -46,12 +47,18 @@ process.on("unhandledRejection", err => {
 function setEnv(name: string, value: string) {
     process.env[name] = process.env[name] || value;
 }
-setEnv("SERVER_CONFIG_PATH", "/usr/local/etc/mirakurun/server.yml");
-setEnv("TUNERS_CONFIG_PATH", "/usr/local/etc/mirakurun/tuners.yml");
-setEnv("CHANNELS_CONFIG_PATH", "/usr/local/etc/mirakurun/channels.yml");
-setEnv("SERVICES_DB_PATH", "/usr/local/var/db/mirakurun/services.json");
-setEnv("PROGRAMS_DB_PATH", "/usr/local/var/db/mirakurun/programs.json");
-setEnv("LOGO_DATA_DIR_PATH", "/usr/local/var/db/mirakurun/logo-data");
+const configDir = path.join(process.cwd(), "local_config");
+const dataDir = path.join(process.cwd(), "local_data");
+
+console.log("configDir:", configDir);
+console.log("dataDir:", dataDir);
+
+setEnv("SERVER_CONFIG_PATH", path.join(configDir, "server.yml"));
+setEnv("TUNERS_CONFIG_PATH", path.join(configDir, "tuners.yml"));
+setEnv("CHANNELS_CONFIG_PATH", path.join(configDir, "channels.yml"));
+setEnv("SERVICES_DB_PATH", path.join(dataDir, "services.json"));
+setEnv("PROGRAMS_DB_PATH", path.join(dataDir, "programs.json"));
+setEnv("LOGO_DATA_DIR_PATH", path.join(dataDir, "logo-data"));
 
 import _ from "./Mirakurun/_";
 import status from "./Mirakurun/status";

@@ -11,3 +11,5 @@
 *.tsbuildinfo
 test.*
 .DS_Store
+/local_config
+/local_data
