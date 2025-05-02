@@ -19,7 +19,7 @@ import * as api from "../api";
 
 export const put: Operation = (req, res) => {
     if (process.env.pm_uptime) {
-        const cmd = spawn("mirakurun", ["restart"], {
+        const cmd = spawn("pm2", ["restart", "mirakurun-server"], {
             detached: true,
             stdio: "ignore"
         });
@@ -29,7 +29,7 @@ export const put: Operation = (req, res) => {
         res.status(202);
         res.end(JSON.stringify({ _cmd_pid: cmd.pid }));
     } else if (process.env.USING_WINSER) {
-        const cmd = spawn("cmd", ["/c", "net stop mirakurun & sc start mirakurun"], {
+        const cmd = spawn("cmd", ["/c", "net stop mirakurun & timeout 2 & sc start mirakurun"], {
             detached: true,
             stdio: "ignore"
         });

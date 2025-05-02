@@ -28,6 +28,7 @@ export function getIPv4AddressesForListen(): string[] {
     const addresses = [];
 
     const interfaces = os.networkInterfaces();
+
     Object.keys(interfaces).forEach(k => {
         interfaces[k]
             .filter(a => {
@@ -57,7 +58,7 @@ export function getIPv6AddressesForListen(): string[] {
                 );
             })
             .forEach(a => addresses.push(a.address + "%" + k));
-    });
+        });
 
     return addresses;
 }

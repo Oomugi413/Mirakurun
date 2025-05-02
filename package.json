@@ -1,7 +1,8 @@
 {
-  "name": "mirakurun",
+  "name": "@stuayu/mirakurun",
+  "preferGlobal": true,
   "description": "DVR Tuner Server for Japanese TV.",
-  "version": "4.0.0-beta.18",
+  "version": "4.0.0-beta.18-stuayu",
   "homepage": "https://github.com/Chinachu/Mirakurun",
   "keywords": [
     "mirakurun",
@@ -23,7 +24,7 @@
   ],
   "repository": {
     "type": "git",
-    "url": "https://github.com/Chinachu/Mirakurun.git"
+    "url": "https://github.com/stuayu/Mirakurun.git"
   },
   "bugs": {
     "url": "https://github.com/Chinachu/Mirakurun/issues"
@@ -40,7 +41,7 @@
     "start.win32": "node.exe -r source-map-support/register bin/init.win32.js",
     "debug.win32": "node.exe -r source-map-support/register --inspect bin/init.win32.js",
     "build": "npm run build:server && npm run build:webpack",
-    "build:server": "tslint --project . && tsc --declaration",
+    "build:server": "eslint --fix && tsc --declaration",
     "build:webpack": "webpack",
     "watch": "concurrently -n w: npm:watch:*",
     "watch:server": "tsc -w --declaration",
@@ -99,8 +100,8 @@
     "@types/ws": "^7.4.7",
     "@types/yieldable-json": "^2.0.2",
     "buffer": "^6.0.3",
-    "concurrently": "^7.0.0",
-    "copy-webpack-plugin": "^9.0.1",
+    "concurrently": "^7.6.0",
+    "copy-webpack-plugin": "^9.1.0",
     "css-loader": "5.2.7",
     "process": "^0.11.10",
     "react": "^18.3.1",

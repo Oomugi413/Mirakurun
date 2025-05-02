@@ -65,15 +65,15 @@ const columns: IColumn[] = [
         key: "col-name",
         name: "Name",
         fieldName: "name",
-        minWidth: 100,
-        maxWidth: 100
+        minWidth: 150,
+        maxWidth: 150
     },
     {
         key: "col-type",
         name: "Type",
         fieldName: "type",
-        minWidth: 65,
-        maxWidth: 65
+        minWidth: 90,
+        maxWidth: 90
     },
     {
         key: "col-channel",
@@ -100,7 +100,10 @@ const columns: IColumn[] = [
 
 const dummySelection = new Selection(); // dummy
 
-const typesIndex = ["GR", "BS", "CS", "SKY"];
+const typesIndex = ["GR", "BS", "CS", "SKY", "NW1", "NW2", "NW3", "NW4", "NW5", "NW6", "NW7", "NW8", "NW9", "NW10",
+    "NW11", "NW12", "NW13", "NW14", "NW15", "NW16", "NW17", "NW18", "NW19", "NW20",
+    "NW21", "NW22", "NW23", "NW24", "NW25", "NW26", "NW27", "NW28", "NW29", "NW30",
+    "NW31", "NW32", "NW33", "NW34", "NW35", "NW36", "NW37", "NW38", "NW39", "NW40"];
 function sortTypes(types: ChannelType[]): ChannelType[] {
     return types.sort((a, b) => typesIndex.indexOf(a) - typesIndex.indexOf(b));
 }
@@ -353,7 +356,48 @@ const Configurator: React.FC<{ uiState: UIState, uiStateEvents: EventEmitter }> 
                         { key: "GR", text: "GR" },
                         { key: "BS", text: "BS" },
                         { key: "CS", text: "CS" },
-                        { key: "SKY", text: "SKY" }
+                        { key: "SKY", text: "SKY" },
+                        { key: "NW1", text: "NW1" },
+                        { key: "NW2", text: "NW2" },
+                        { key: "NW3", text: "NW3" },
+                        { key: "NW4", text: "NW4" },
+                        { key: "NW5", text: "NW5" },
+                        { key: "NW6", text: "NW6" },
+                        { key: "NW7", text: "NW7" },
+                        { key: "NW8", text: "NW8" },
+                        { key: "NW9", text: "NW9" },
+                        { key: "NW10", text: "NW10" },
+                        { key: "NW11", text: "NW11" },
+                        { key: "NW12", text: "NW12" },
+                        { key: "NW13", text: "NW13" },
+                        { key: "NW14", text: "NW14" },
+                        { key: "NW15", text: "NW15" },
+                        { key: "NW16", text: "NW16" },
+                        { key: "NW17", text: "NW17" },
+                        { key: "NW18", text: "NW18" },
+                        { key: "NW19", text: "NW19" },
+                        { key: "NW20", text: "NW20" },
+                        { key: "NW21", text: "NW21" },
+                        { key: "NW22", text: "NW22" },
+                        { key: "NW23", text: "NW23" },
+                        { key: "NW24", text: "NW24" },
+                        { key: "NW25", text: "NW25" },
+                        { key: "NW26", text: "NW26" },
+                        { key: "NW27", text: "NW27" },
+                        { key: "NW28", text: "NW28" },
+                        { key: "NW29", text: "NW29" },
+                        { key: "NW30", text: "NW30" },
+                        { key: "NW31", text: "NW31" },
+                        { key: "NW32", text: "NW32" },
+                        { key: "NW33", text: "NW33" },
+                        { key: "NW34", text: "NW34" },
+                        { key: "NW35", text: "NW35" },
+                        { key: "NW36", text: "NW36" },
+                        { key: "NW37", text: "NW37" },
+                        { key: "NW38", text: "NW38" },
+                        { key: "NW39", text: "NW39" },
+                        { key: "NW40", text: "NW40" }
+
                     ]}
                     selectedKey={ch.type}
                     onChange={(ev, option) => {
@@ -590,15 +634,17 @@ const Configurator: React.FC<{ uiState: UIState, uiStateEvents: EventEmitter }> 
                     <IconButton
                         title="Controls"
                         iconProps={{ iconName: "More" }}
-                        menuProps={{ items: [{
-                            key: "remove",
-                            text: "Remove Channel",
-                            iconProps: { iconName: "Delete" },
-                            onClick: () => {
-                                editing.splice(i, 1);
-                                setEditing([...editing]);
-                            }
-                        }] }}
+                        menuProps={{
+                            items: [{
+                                key: "remove",
+                                text: "Remove Channel",
+                                iconProps: { iconName: "Delete" },
+                                onClick: () => {
+                                    editing.splice(i, 1);
+                                    setEditing([...editing]);
+                                }
+                            }]
+                        }}
                     />
                 </Stack>
             )

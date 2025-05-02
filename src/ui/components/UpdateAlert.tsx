@@ -32,7 +32,7 @@ const UpdateAlert: React.FC = () => {
             console.log("UpdateAlert", "checking update", "...");
             const version: Version = await (await fetch("/api/version")).json();
             setVersion(version);
-            if (version.current !== version.latest) {
+            if (version.latest.indexOf(version.current) > -1) {
                 setUpdateAvailable(true);
             }
             console.log("UpdateAlert", "checking update", "done.");
@@ -50,7 +50,7 @@ const UpdateAlert: React.FC = () => {
                     actions={
                         <div>
                             <MessageBarButton
-                                href="https://github.com/Chinachu/Mirakurun/blob/master/doc/Platforms.md"
+                                href="https://github.com/stuayu/Mirakurun/blob/master/doc/Platforms.md"
                                 target="_blank"
                             >
                                 How to Update
@@ -59,7 +59,7 @@ const UpdateAlert: React.FC = () => {
                     }
                 >
                     Update ({version.latest}) Available!
-                    <Link href="https://github.com/Chinachu/Mirakurun/blob/master/CHANGELOG.md" target="_blank">
+                    <Link href="https://github.com/stuayu/Mirakurun/blob/master/CHANGELOG.md" target="_blank">
                         CHANGELOG
                     </Link>
                 </MessageBar>

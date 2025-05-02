@@ -1,0 +1,48 @@
+name: build
+
+on:
+  push:
+    branches: [master, stuayu-main, dev]
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: build-${{matrix.os}}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macOS-latest]
+        node-version: [16.x, 18.x, 20.x]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          path: Mirakurun
+
+      - name: Use Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+
+      - name: install winser on windows
+        if: runner.os == 'Windows'
+        run: npm install winser -g
+
+      - name: Mirakurun build and install
+        working-directory: Mirakurun
+        continue-on-error: true # npm audit fixでエラーになるのを回避
+        run: |
+          npm install
+          npm run build
+
+      - name: Compress Project
+        run: |
+          7z a -m0=LZMA2 -mx=9 -md=128m -mfb=128 -ms=16g -mmt=on -mf=BCJ Mirakurun-${{ matrix.os }}-${{ matrix.node-version }}.7z ./Mirakurun
+
+      - name: Upload Project as Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Mirakurun-${{ matrix.os }}-${{ matrix.node-version }}.7z
+          path: Mirakurun-${{ matrix.os }}-${{ matrix.node-version }}.7z

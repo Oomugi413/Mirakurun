@@ -26,55 +26,79 @@ import ServiceItem from "./ServiceItem";
 
 const { LOGO_DATA_DIR_PATH } = process.env;
 
+/**
+ * Service
+ * * TVサービス処理についてのクラス
+ */
 export class Service {
-    static getLogoDataPath(networkId: number, logoId: number) {
+    // * ロゴデータのパスを取得
+    static getLogoDataPath(networkId: number, serviceId: number, logoId: number) {
+
+        // BS/CS/CATVはロゴIDを使わずにサービスIDで対応する CATVのネットワークIDの範囲が不明なため60000以上で対応
+        if (networkId === 4 || networkId === 6 || networkId === 7 || networkId > 60000) {
+            return join(LOGO_DATA_DIR_PATH, `${networkId}_${serviceId}.png`);
+        }
+
         if (typeof logoId !== "number" || logoId < 0) {
             throw new Error("Invalid `logoId`");
         }
 
+        // 地上波はロゴIDで保存する
         return join(LOGO_DATA_DIR_PATH, `${networkId}_${logoId}.png`);
     }
 
-    static async getLogoDataMTime(networkId: number, logoId: number): Promise<number> {
-        if (typeof logoId !== "number" || logoId < 0) {
+    static async getLogoDataMTime(networkId: number, serviceId: number, logoId: number): Promise<number> {
+
+        if (typeof logoId !== "number" || logoId < -1) {
             return 0;
         }
 
         try {
-            return (await stat(Service.getLogoDataPath(networkId, logoId))).mtimeMs;
+            return (await fsPromises.stat(Service.getLogoDataPath(networkId, serviceId, logoId))).mtimeMs;
         } catch (e) {
             return 0;
         }
     }
 
-    static async isLogoDataExists(networkId: number, logoId: number): Promise<boolean> {
-        if (typeof logoId !== "number" || logoId < 0) {
+    static async isLogoDataExists(networkId: number, serviceId: number, logoId: number): Promise<boolean> {
+
+        if (typeof logoId !== "number" || logoId < -1) {
             return false;
         }
 
         try {
-            return (await stat(Service.getLogoDataPath(networkId, logoId))).isFile();
+            return (await stat(Service.getLogoDataPath(networkId, serviceId, logoId))).isFile();
         } catch (e) {
             return false;
         }
     }
 
-    static async loadLogoData(networkId: number, logoId: number): Promise<Buffer> {
-        if (typeof logoId !== "number" || logoId < 0) {
+    static async loadLogoData(networkId: number, serviceId: number, logoId: number): Promise<Buffer> {
+        if (typeof logoId !== "number" || logoId < -1) {
             return null;
         }
 
         try {
-            return await readFile(Service.getLogoDataPath(networkId, logoId));
+            return await readFile(Service.getLogoDataPath(networkId, serviceId, logoId));
         } catch (e) {
             return null;
         }
     }
 
-    static async saveLogoData(networkId: number, logoId: number, data: Uint8Array, retrying = false): Promise<void> {
-        log.info("Service.saveLogoData(): saving... (networkId=%d logoId=%d)", networkId, logoId);
+    /**
+     * * 放送波からロゴデータを保存する
+     * @param networkId ネットワークID(NID)
+     * @param serviceId サービスID(SID)
+     * @param logoId ロゴID
+     * @param data バイナリロゴデータ
+     * @param retrying リトライするかどうか
+     * @returns
+     */
+    static async saveLogoData(networkId: number, serviceId: number, logoId: number, data: Uint8Array, retrying = false): Promise<void> {
 
-        const path = Service.getLogoDataPath(networkId, logoId);
+        log.info("Service.saveLogoData(): saving... (networkId=%d serviceId=%d logoId=%d)", networkId, serviceId, logoId);
+
+        const path = Service.getLogoDataPath(networkId, serviceId, logoId);
 
         try {
             await writeFile(path, data, { encoding: "binary" });
@@ -83,7 +107,7 @@ export class Service {
                 // mkdir if not exists
                 const dirPath = dirname(path);
                 if (existsSync(dirPath) === false) {
-                    log.warn("Service.saveLogoData(): making directory `%s`... (networkId=%d logoId=%d)", dirPath, networkId, logoId);
+                    log.warn("Service.saveLogoData(): making directory `%s`... (networkId=%d serviceId=%d logoId=%d)", dirPath, networkId, serviceId, logoId);
                     try {
                         await mkdir(dirPath, { recursive: true });
                     } catch (e) {
@@ -91,13 +115,13 @@ export class Service {
                     }
                 }
                 // retry
-                log.warn("Service.saveLogoData(): retrying... (networkId=%d logoId=%d)", networkId, logoId);
-                return this.saveLogoData(networkId, logoId, data, true);
+                log.warn("Service.saveLogoData(): retrying... (networkId=%d serviceId=%d logoId=%d)", networkId, serviceId, logoId);
+                return this.saveLogoData(networkId, serviceId, logoId, data, true);
             }
             throw e;
         }
 
-        log.info("Service.saveLogoData(): saved. (networkId=%d logoId=%d)", networkId, logoId);
+        log.info("Service.saveLogoData(): saved. (networkId=%d serviceId=%d logoId=%d)", networkId, serviceId, logoId);
     }
 
     private _items: ServiceItem[] = [];
@@ -152,8 +176,10 @@ export class Service {
 
         const l = this._items.length;
         for (let i = 0; i < l; i++) {
-            if (this._items[i].channel === channel) {
-                items.push(this._items[i]);
+            for (const channels of this._items[i].channel) {
+                if (channels === channel) {
+                    items.push(this._items[i]);
+                }
             }
         }
 
@@ -198,9 +224,15 @@ export class Service {
 
         const services = await db.loadServices(_.configIntegrity.channels, true);
         for (const service of services) {
-            const channelItem = _.channel.get(service.channel.type, service.channel.channel);
+            const typelist = service.channel.map(ch => ch.type);
+            const channellist = service.channel.map(ch => ch.channel);
+            const channelItems: ChannelItem[] = [];
 
-            if (channelItem === null) {
+            for (let i = 0; i < typelist.length; i++) {
+                channelItems.push(_.channel.get(typelist[i], channellist[i]));
+            }
+
+            if (channelItems.length <= 0) {
                 updated = true;
                 continue;
             }
@@ -212,12 +244,12 @@ export class Service {
 
             // migrate logo data
             if (service.logoData) {
-                const logoDataPath = Service.getLogoDataPath(service.networkId, service.logoId);
+                const logoDataPath = Service.getLogoDataPath(service.networkId, service.serviceId, service.logoId);
                 log.warn("migrating deprecated property `logoData` to file `%s` in service#%d (%s) db", logoDataPath, service.id, service.name);
-                Service.saveLogoData(service.networkId, service.logoId, Buffer.from(service.logoData, "base64"));
+                Service.saveLogoData(service.networkId, service.serviceId, service.logoId, Buffer.from(service.logoData, "base64"));
 
                 // delete duplicates
-                services.filter(s => s.networkId === service.networkId && s.logoId === service.logoId).forEach(s => {
+                services.filter(s => s.networkId === service.networkId && s.serviceId === service.serviceId && s.logoId === service.logoId).forEach(s => {
                     delete s.logoData;
                 });
                 updated = true;
@@ -225,7 +257,7 @@ export class Service {
 
             this.add(
                 new ServiceItem(
-                    channelItem,
+                    channelItems,
                     service.networkId,
                     service.serviceId,
                     service.name,
@@ -381,7 +413,7 @@ export class Service {
         log.debug("ChannelItem#'%s' serviceId=%d: %s", channel.name, serviceId, JSON.stringify(service, null, "  "));
 
         this.add(
-            new ServiceItem(channel, service.networkId, service.serviceId, service.name, service.type, service.logoId)
+            new ServiceItem([channel], service.networkId, service.serviceId, service.name, service.type, service.logoId)
         );
 
         log.info("ChannelItem#'%s' serviceId=%d check has finished", channel.name, serviceId);
@@ -412,7 +444,7 @@ export class Service {
             } else if (add === true) {
                 this.add(
                     new ServiceItem(
-                        channel,
+                        [channel],
                         service.networkId,
                         service.serviceId,
                         service.name,

@@ -106,7 +106,7 @@ export class Tuner {
         return this._initTS({
             ...userReq,
             streamSetting: {
-                channel,
+                channel: [channel],
                 networkId,
                 parseEIT: true
             }
@@ -158,7 +158,7 @@ export class Tuner {
             priority: -1,
             disableDecoder: true,
             streamSetting: {
-                channel,
+                channel: [channel],
                 networkId,
                 parseEIT: true
             }
@@ -188,7 +188,7 @@ export class Tuner {
             priority: -1,
             disableDecoder: true,
             streamSetting: {
-                channel,
+                channel: [channel],
                 parseNIT: true,
                 parseSDT: true
             },
@@ -308,7 +308,23 @@ export class Tuner {
             setting.parseEIT = false;
         }
 
-        const devices = this._getDevicesByType(setting.channel.type);
+        /**
+         * チューナーグループとチャンネルの組み合わせが渡される
+         * 想定としては次のように同一チャンネルが映るチューナー情報が渡される
+         * {type: GR, channel: 0}{type: NW1, channel: 17}
+         * ループを回し、GR側が利用中や利用不可の時にNW1側のチューナーを利用する
+         */
+        const devices = []; // チューナーデバイスを格納
+        const channels = []; // チャンネル情報を格納
+
+        for (const ch of setting.channel) {
+            const device = this._getDevicesByType(ch.type);
+            // チューナーと同じ数チャンネル情報を複製
+            for (let index = 0; index < device.length; index++) {
+                devices.push(device[index]);
+                channels.push(ch);
+            }
+        }
         let tryCount = 50;
 
         if (!dest) {
@@ -394,48 +410,95 @@ export class Tuner {
         return false;
     }
 
-    /**
-     * チューナーデバイス探索
-     */
-    private _pickTunerDevice(
-        devices: TunerDevice[],
-        channel: ChannelItem,
-        priority: number
-    ): TunerDevice | null {
-        // 1. join to existing
-        for (const device of devices) {
-            if (device.isAvailable === true && device.channel === channel) {
-                return device;
-            }
-        }
+/**
+ * 最適なチューナーデバイスを選択する
+ *
+ * @param devices 利用可能なチューナーデバイスのリスト
+ * @param channels チューニングしたいチャンネルのリスト
+ * @param priority このリクエストの優先度
+ * @returns 選択されたチューナーデバイスとチューニングするチャンネルのタプル、または null
+ */
+private _pickTunerDevice(
+    devices: TunerDevice[],
+    channels: ChannelItem[],
+    priority: number // user.priority の代わり
+): [TunerDevice, ChannelItem] | null {
 
-        // 2. start as new
-        for (const device of devices) {
-            if (device.isFree === true) {
-                return device;
-            }
-        }
-
-        // 3. replace existing
-        for (const device of devices) {
-            if (device.isAvailable === true && device.users.length === 0) {
-                return device;
-            }
-        }
-
-        // 4. takeover existing
-        if (priority >= 0) {
-            devices.sort((t1, t2) => t1.getPriority() - t2.getPriority());
-            for (const device of devices) {
-                if (device.isUsing === true && device.getPriority() < priority) {
-                    return device;
-                }
-            }
-        }
-
+    // チャンネルリストが空なら何も選択できない
+    if (channels.length === 0) {
+        console.warn("チャンネルリストが空のため、デバイスを選択できませんでした。");
         return null;
     }
 
+    // --- 選択ロジック開始 ---
+    let selectedDevice: TunerDevice | null = null;
+    let selectedChannel: ChannelItem | null = null;
+
+    // 1. join to existing: 既に目的のチャンネルに合っているデバイスを探す
+    for (const device of devices) {
+        // device.channel が null でなく、かつ channels 配列内に存在するかチェック
+        if (device.channel && device.isAvailable /* または isUsing? */) {
+            const matchedChannel = channels.find(ch => ch.id === device.channel?.id); // id などで比較
+            if (matchedChannel) {
+                selectedDevice = device;
+                selectedChannel = matchedChannel;
+                console.log(`Found existing device ${selectedDevice.id} for channel ${selectedChannel.id}`);
+                break; // 見つかったらループを抜ける
+            }
+        }
+    }
+
+    // 2. start as new: 完全に空いているデバイスを探す
+    if (selectedDevice === null) {
+        const targetChannel = channels[0]; // 新規の場合は最初のチャンネルを選択
+        for (const device of devices) {
+            if (device.isFree === true) {
+                selectedDevice = device;
+                selectedChannel = targetChannel;
+                console.log(`Found free device ${selectedDevice.id} for new channel ${selectedChannel.id}`);
+                break; // 見つかったらループを抜ける
+            }
+        }
+    }
+
+    // 3. replace existing: チューニング済みだが誰も使っていないデバイスを探す
+    if (selectedDevice === null) {
+        const targetChannel = channels[0]; // 置き換えの場合も最初のチャンネルを選択
+        for (const device of devices) {
+            // isAvailable が true で、かつ users が空の場合
+            if (device.isAvailable === true && device.users.length === 0) {
+                selectedDevice = device;
+                selectedChannel = targetChannel;
+                console.log(`Found idle device ${selectedDevice.id} to replace for channel ${selectedChannel.id}`);
+                break; // 見つかったらループを抜ける
+            }
+        }
+    }
+
+    // 4. takeover existing: 使用中だが優先度が低いデバイスを乗っ取る
+    if (selectedDevice === null && priority >= 0) { // priority が負でない場合のみ乗っ取り
+        const targetChannel = channels[0]; // 乗っ取りの場合も最初のチャンネルを選択
+        // 優先度が低い順にソート (元の配列を変更しないようにコピーを作成)
+        const sortedDevices = [...devices].sort((t1, t2) => t1.getPriority() - t2.getPriority());
+        for (const device of sortedDevices) {
+            // isUsing で、かつ現在の優先度がリクエストの優先度より低い場合
+            if (device.isUsing === true && device.getPriority() < priority) {
+                selectedDevice = device;
+                selectedChannel = targetChannel;
+                console.log(`Taking over lower priority device ${selectedDevice.id} (priority ${device.getPriority()}) for channel ${selectedChannel.id} (request priority ${priority})`);
+                break; // 見つかったらループを抜ける
+            }
+        }
+    }
+
+    // --- 結果を返す ---
+    if (selectedDevice && selectedChannel) {
+        return [selectedDevice, selectedChannel];
+    } else {
+        console.log("利用可能なチューナーデバイスが見つかりませんでした（指定された優先順位内）。");
+        return null;
+    }
+}
     private _getDevicesByType(type: apid.ChannelType): TunerDevice[] {
         const devices = [];
 

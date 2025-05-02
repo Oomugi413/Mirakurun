@@ -98,10 +98,21 @@ export async function loadServer(): Promise<Server> {
 
     // set default
     if (!config.allowIPv4CidrRanges) {
-        config.allowIPv4CidrRanges = ["10.0.0.0/8", "127.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16"];
+        config.allowIPv4CidrRanges = ["10.0.0.0/8", "127.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16", "100.0.0.0/8"];
     }
     if (!config.allowIPv6CidrRanges) {
         config.allowIPv6CidrRanges = ["fc00::/7"];
+    }
+    if (!config.allowOrigins) {
+        config.allowOrigins = [
+            "https://mirakurun-secure-contexts-api.pages.dev"
+        ];
+    }
+    if (!config.allowPNA) {
+        config.allowPNA = true;
+    }
+    if (!config.tsplayEndpoint) {
+        config.tsplayEndpoint = "https://mirakurun-secure-contexts-api.pages.dev/tsplay/";
     }
     if (!config.allowOrigins) {
         config.allowOrigins = [
