@@ -23,8 +23,8 @@ export const get: Operation = (req, res) => {
     const apiRoot = `${req.protocol}://${req.headers.host}/api`;
 
     api.responseJSON(res, {
-        FriendlyName: `Mirakurun`,
-        ModelNumber: `MIRAKURUN`,
+        FriendlyName: "Mirakurun",
+        ModelNumber: "MIRAKURUN",
         FirmwareName: `mirakurun_${process.arch}_${process.platform}`,
         FirmwareVersion: pkg.version,
         Manufacturer: "Chinachu Project",

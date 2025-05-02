@@ -238,169 +238,169 @@ export default class EPG {
 
             for (const d of e.descriptors) {
                 switch (d.descriptor_tag) {
-                    // short_event
-                    case 0x4D:
-                        if (!isOutOfDate(eit, state.short.version)) {
-                            break;
-                        }
-                        state.short.version[eit.table_id] = eit.version_number;
-
-                        _.program.set(state.programId, {
-                            name: new TsChar(d.event_name_char).decode(),
-                            description: new TsChar(d.text_char).decode()
-                        });
-
+                // short_event
+                case 0x4D:
+                    if (!isOutOfDate(eit, state.short.version)) {
                         break;
+                    }
+                    state.short.version[eit.table_id] = eit.version_number;
+
+                    _.program.set(state.programId, {
+                        name: new TsChar(d.event_name_char).decode(),
+                        description: new TsChar(d.text_char).decode()
+                    });
+
+                    break;
 
                     // extended_event
-                    case 0x4E:
-                        if (isOutOfDate(eit, state.extended.version)) {
-                            state.extended.version[eit.table_id] = eit.version_number;
-                            state.extended._descs = new Array(d.last_descriptor_number + 1);
-                            state.extended._done = false;
-                        } else if (state.extended._done) {
-                            break;
-                        }
+                case 0x4E:
+                    if (isOutOfDate(eit, state.extended.version)) {
+                        state.extended.version[eit.table_id] = eit.version_number;
+                        state.extended._descs = new Array(d.last_descriptor_number + 1);
+                        state.extended._done = false;
+                    } else if (state.extended._done) {
+                        break;
+                    }
 
-                        if (!state.extended._descs[d.descriptor_number]) {
-                            state.extended._descs[d.descriptor_number] = d.items;
+                    if (!state.extended._descs[d.descriptor_number]) {
+                        state.extended._descs[d.descriptor_number] = d.items;
 
-                            let comp = true;
-                            for (const descs of state.extended._descs) {
-                                if (typeof descs === "undefined") {
-                                    comp = false;
-                                    break;
-                                }
-                            }
-                            if (comp === false) {
+                        let comp = true;
+                        for (const descs of state.extended._descs) {
+                            if (typeof descs === "undefined") {
+                                comp = false;
                                 break;
                             }
-
-                            const extended: any = {};
-
-                            let current = "";
-                            for (const descs of state.extended._descs) {
-                                for (const desc of descs) {
-                                    const key = desc.item_description_length === 0
-                                                ? current
-                                                : new TsChar(desc.item_description_char).decode();
-                                    current = key;
-                                    extended[key] = extended[key] ?
-                                        Buffer.concat([extended[key], desc.item_char]) :
-                                        desc.item_char;
-                                }
-                            }
-                            for (const key of Object.keys(extended)) {
-                                extended[key] = new TsChar(extended[key]).decode();
-                            }
-
-                            _.program.set(state.programId, {
-                                extended: extended
-                            });
-
-                            delete state.extended._descs;
-                            state.extended._done = true; // done
+                        }
+                        if (comp === false) {
+                            break;
                         }
 
-                        break;
+                        const extended: any = {};
+
+                        let current = "";
+                        for (const descs of state.extended._descs) {
+                            for (const desc of descs) {
+                                const key = desc.item_description_length === 0
+                                    ? current
+                                    : new TsChar(desc.item_description_char).decode();
+                                current = key;
+                                extended[key] = extended[key] ?
+                                    Buffer.concat([extended[key], desc.item_char]) :
+                                    desc.item_char;
+                            }
+                        }
+                        for (const key of Object.keys(extended)) {
+                            extended[key] = new TsChar(extended[key]).decode();
+                        }
+
+                        _.program.set(state.programId, {
+                            extended: extended
+                        });
+
+                        delete state.extended._descs;
+                        state.extended._done = true; // done
+                    }
+
+                    break;
 
                     // component
-                    case 0x50:
-                        if (!isOutOfDate(eit, state.component.version)) {
-                            break;
-                        }
-                        state.component.version[eit.table_id] = eit.version_number;
-
-                        _.program.set(state.programId, {
-                            video: {
-                                type: <db.ProgramVideoType> STREAM_CONTENT[d.stream_content] || null,
-                                resolution: <db.ProgramVideoResolution> COMPONENT_TYPE[d.component_type] || null,
-
-                                streamContent: d.stream_content,
-                                componentType: d.component_type
-                            }
-                        });
-
+                case 0x50:
+                    if (!isOutOfDate(eit, state.component.version)) {
                         break;
+                    }
+                    state.component.version[eit.table_id] = eit.version_number;
+
+                    _.program.set(state.programId, {
+                        video: {
+                            type: <db.ProgramVideoType> STREAM_CONTENT[d.stream_content] || null,
+                            resolution: <db.ProgramVideoResolution> COMPONENT_TYPE[d.component_type] || null,
+
+                            streamContent: d.stream_content,
+                            componentType: d.component_type
+                        }
+                    });
+
+                    break;
 
                     // content
-                    case 0x54:
-                        if (!isOutOfDate(eit, state.content.version)) {
-                            break;
-                        }
-                        state.content.version[eit.table_id] = eit.version_number;
-
-                        _.program.set(state.programId, {
-                            genres: d.contents.map(getGenre)
-                        });
-
+                case 0x54:
+                    if (!isOutOfDate(eit, state.content.version)) {
                         break;
+                    }
+                    state.content.version[eit.table_id] = eit.version_number;
+
+                    _.program.set(state.programId, {
+                        genres: d.contents.map(getGenre)
+                    });
+
+                    break;
 
                     // audio component
-                    case 0xC4:
-                        if (!isOutOfDateLv2(eit, state.audio.version, d.component_tag)) {
-                            break;
-                        }
-                        state.audio.version[eit.table_id][d.component_tag] = eit.version_number;
-
-                        const langs = [getLangCode(d.ISO_639_language_code)];
-                        if (d.ISO_639_language_code_2) {
-                            langs.push(getLangCode(d.ISO_639_language_code_2));
-                        }
-
-                        state.audio._audios[d.component_tag] = {
-                            componentType: d.component_type,
-                            componentTag: d.component_tag,
-                            isMain: d.main_component_flag === 1,
-                            samplingRate: SAMPLING_RATE[d.sampling_rate],
-                            langs
-                        };
-
-                        _.program.set(state.programId, {
-                            audios: Object.values(state.audio._audios)
-                        });
-
+                case 0xC4:
+                    if (!isOutOfDateLv2(eit, state.audio.version, d.component_tag)) {
                         break;
+                    }
+                    state.audio.version[eit.table_id][d.component_tag] = eit.version_number;
+
+                    const langs = [getLangCode(d.ISO_639_language_code)];
+                    if (d.ISO_639_language_code_2) {
+                        langs.push(getLangCode(d.ISO_639_language_code_2));
+                    }
+
+                    state.audio._audios[d.component_tag] = {
+                        componentType: d.component_type,
+                        componentTag: d.component_tag,
+                        isMain: d.main_component_flag === 1,
+                        samplingRate: SAMPLING_RATE[d.sampling_rate],
+                        langs
+                    };
+
+                    _.program.set(state.programId, {
+                        audios: Object.values(state.audio._audios)
+                    });
+
+                    break;
 
                     // series
-                    case 0xD5:
-                        if (!isOutOfDate(eit, state.series.version)) {
-                            break;
-                        }
-                        state.series.version[eit.table_id] = eit.version_number;
-
-                        _.program.set(state.programId, {
-                            series: {
-                                id: d.series_id,
-                                repeat: d.repeat_label,
-                                pattern: d.program_pattern,
-                                expiresAt: d.expire_date_valid_flag === 1 ?
-                                    getTimeFromMJD(Buffer.from(d.expire_date.toString(16), "hex")) :
-                                    -1,
-                                episode: d.episode_number,
-                                lastEpisode: d.last_episode_number,
-                                name: new TsChar(d.series_name_char).decode()
-                            }
-                        });
-
+                case 0xD5:
+                    if (!isOutOfDate(eit, state.series.version)) {
                         break;
+                    }
+                    state.series.version[eit.table_id] = eit.version_number;
+
+                    _.program.set(state.programId, {
+                        series: {
+                            id: d.series_id,
+                            repeat: d.repeat_label,
+                            pattern: d.program_pattern,
+                            expiresAt: d.expire_date_valid_flag === 1 ?
+                                getTimeFromMJD(Buffer.from(d.expire_date.toString(16), "hex")) :
+                                -1,
+                            episode: d.episode_number,
+                            lastEpisode: d.last_episode_number,
+                            name: new TsChar(d.series_name_char).decode()
+                        }
+                    });
+
+                    break;
 
                     // event_group
-                    case 0xD6:
-                        if (!isOutOfDateLv2(eit, state.group.version, d.group_type)) {
-                            break;
-                        }
-                        state.group.version[eit.table_id][d.group_type] = eit.version_number;
-
-                        state.group._groups[d.group_type] = d.group_type < 4 ?
-                            d.events.map(getRelatedProgramItem.bind(d)) :
-                            d.other_network_events.map(getRelatedProgramItem.bind(d));
-
-                        _.program.set(state.programId, {
-                            relatedItems: state.group._groups.flat()
-                        });
-
+                case 0xD6:
+                    if (!isOutOfDateLv2(eit, state.group.version, d.group_type)) {
                         break;
+                    }
+                    state.group.version[eit.table_id][d.group_type] = eit.version_number;
+
+                    state.group._groups[d.group_type] = d.group_type < 4 ?
+                        d.events.map(getRelatedProgramItem.bind(d)) :
+                        d.other_network_events.map(getRelatedProgramItem.bind(d));
+
+                    _.program.set(state.programId, {
+                        relatedItems: state.group._groups.flat()
+                    });
+
+                    break;
                 } // <- switch
             } // <- for
         } // <- for

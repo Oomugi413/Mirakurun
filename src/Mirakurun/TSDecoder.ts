@@ -52,10 +52,14 @@ export default class TSDecoder extends stream.Writable {
         this._output.once("close", this._close.bind(this));
 
         Object.defineProperty(this, "writableLength", {
-            get() { return opts.output.writableLength; }
+            get() {
+                return opts.output.writableLength;
+            }
         });
         Object.defineProperty(this, "writableHighWaterMark", {
-            get() { return opts.output.writableHighWaterMark; }
+            get() {
+                return opts.output.writableHighWaterMark;
+            }
         });
 
         this.once("close", this._close.bind(this));

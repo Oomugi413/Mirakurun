@@ -30,7 +30,7 @@ export default class ServiceItem {
     private _id: number;
 
     constructor(
-        private _channel: ChannelItem,
+        private _channel: ChannelItem[],
         private _networkId: number,
         private _serviceId: number,
         private _name?: string,
@@ -139,7 +139,7 @@ export default class ServiceItem {
         }
     }
 
-    get channel(): ChannelItem {
+    get channel(): ChannelItem[] {
         return this._channel;
     }
 
@@ -155,10 +155,7 @@ export default class ServiceItem {
             remoteControlKeyId: this._remoteControlKeyId,
             epgReady: this._epgReady,
             epgUpdatedAt: this._epgUpdatedAt,
-            channel: {
-                type: this._channel.type,
-                channel: this._channel.channel
-            }
+            channel: this._channel
         };
 
         return ret;
@@ -172,147 +169,143 @@ export default class ServiceItem {
 
         let order: string;
 
-        switch (this._channel.type) {
-            case "GR":
-                order = "1";
-                break;
-            case "BS":
-                order = "2";
-                break;
-            case "CS":
-                order = "3";
-                break;
-            case "SKY":
-                order = "4";
-                break;
-            case "NW1":
-                order = "5";
-                break;
-            case "NW2":
-                order = "6";
-                break;
-            case "NW3":
-                order = "7";
-                break;
-            case "NW4":
-                order = "8";
-                break;
-            case "NW5":
-                order = "9";
-                break;
-            case "NW6":
-                order = "10";
-                break;
-            case "NW7":
-                order = "11";
-                break;
-            case "NW8":
-                order = "12";
-                break;
-            case "NW9":
-                order = "13";
-                break;
-            case "NW10":
-                order = "14";
-                break;
-            case "NW11":
-                order = "15";
-                break;
-            case "NW12":
-                order = "16";
-                break;
-            case "NW13":
-                order = "17";
-                break;
-            case "NW14":
-                order = "18";
-                break;
-            case "NW15":
-                order = "19";
-                break;
-            case "NW16":
-                order = "20";
-                break;
-            case "NW17":
-                order = "21";
-                break;
-            case "NW18":
-                order = "22";
-                break;
-            case "NW19":
-                order = "23";
-                break;
-            case "NW20":
-                order = "24";
-                break;
-            case "NW21":
-                order = "25";
-                break;
-            case "NW22":
-                order = "26";
-                break;
-            case "NW23":
-                order = "27";
-                break;
-            case "NW24":
-                order = "28";
-                break;
-            case "NW25":
-                order = "29";
-                break;
-            case "NW26":
-                order = "30";
-                break;
-            case "NW27":
-                order = "31";
-                break;
-            case "NW28":
-                order = "32";
-                break;
-            case "NW29":
-                order = "33";
-                break;
-            case "NW30":
-                order = "34";
-                break;
-            case "NW31":
-                order = "35";
-                break;
-            case "NW32":
-                order = "36";
-                break;
-            case "NW33":
-                order = "37";
-                break;
-            case "NW34":
-                order = "38";
-                break;
-            case "NW35":
-                order = "39";
-                break;
-            case "NW36":
-                order = "40";
-                break;
-            case "NW37":
-                order = "41";
-                break;
-            case "NW38":
-                order = "42";
-                break;
-            case "NW39":
-                order = "43";
-                break;
-            case "NW40":
-                order = "44";
-                break;
+        switch (this._channel[0].type) {
+        case "GR":
+            order = "1";
+            break;
+        case "BS":
+            order = "2";
+            break;
+        case "CS":
+            order = "3";
+            break;
+        case "SKY":
+            order = "4";
+            break;
+        case "NW1":
+            order = "5";
+            break;
+        case "NW2":
+            order = "6";
+            break;
+        case "NW3":
+            order = "7";
+            break;
+        case "NW4":
+            order = "8";
+            break;
+        case "NW5":
+            order = "9";
+            break;
+        case "NW6":
+            order = "10";
+            break;
+        case "NW7":
+            order = "11";
+            break;
+        case "NW8":
+            order = "12";
+            break;
+        case "NW9":
+            order = "13";
+            break;
+        case "NW10":
+            order = "14";
+            break;
+        case "NW11":
+            order = "15";
+            break;
+        case "NW12":
+            order = "16";
+            break;
+        case "NW13":
+            order = "17";
+            break;
+        case "NW14":
+            order = "18";
+            break;
+        case "NW15":
+            order = "19";
+            break;
+        case "NW16":
+            order = "20";
+            break;
+        case "NW17":
+            order = "21";
+            break;
+        case "NW18":
+            order = "22";
+            break;
+        case "NW19":
+            order = "23";
+            break;
+        case "NW20":
+            order = "24";
+            break;
+        case "NW21":
+            order = "25";
+            break;
+        case "NW22":
+            order = "26";
+            break;
+        case "NW23":
+            order = "27";
+            break;
+        case "NW24":
+            order = "28";
+            break;
+        case "NW25":
+            order = "29";
+            break;
+        case "NW26":
+            order = "30";
+            break;
+        case "NW27":
+            order = "31";
+            break;
+        case "NW28":
+            order = "32";
+            break;
+        case "NW29":
+            order = "33";
+            break;
+        case "NW30":
+            order = "34";
+            break;
+        case "NW31":
+            order = "35";
+            break;
+        case "NW32":
+            order = "36";
+            break;
+        case "NW33":
+            order = "37";
+            break;
+        case "NW34":
+            order = "38";
+            break;
+        case "NW35":
+            order = "39";
+            break;
+        case "NW36":
+            order = "40";
+            break;
+        case "NW37":
+            order = "41";
+            break;
+        case "NW38":
+            order = "42";
+            break;
+        case "NW39":
+            order = "43";
+            break;
+        case "NW40":
+            order = "44";
+            break;
 
         }
 
-        if (this._remoteControlKeyId) {
-            order += (100 + this._remoteControlKeyId).toString(10);
-        } else {
-            order += "200";
-        }
+        order += this._remoteControlKeyId ? (100 + this._remoteControlKeyId).toString(10) : "200";
 
         order += (10000 + this._serviceId).toString(10);
 

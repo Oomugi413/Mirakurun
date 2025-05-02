@@ -11,6 +11,53 @@ DVR Tuner Server for Japanese TV which designed for the "Air" (in development co
 [![Backers on Open Collective](https://opencollective.com/Mirakurun/backers/badge.svg)](#backers)
 [![Sponsors on Open Collective](https://opencollective.com/Mirakurun/sponsors/badge.svg)](#sponsors)
 
+---
+## フォークにあたっての変更点など
+> [!NOTE]
+> こちらは開発ブランチです。正常な動作は保証しておりません。<br>
+> 機能追加するときのテストをしています。<br>
+> BonDriverごとに物理チャンネル番号等がずれてしまっている場合でも、<br>
+> 効率よく選局ができるようになりました。(サービスストリームのみ)<br>
+> [EPGStation devブランチ](https://github.com/stuayu/EPGStation/tree/dev)と[BonDriver_mirakc](https://github.com/stuayu/BonDriver_mirakc)のService_Split=1で動作することを確認済みです。<br>
+> ※APIに変更が加わっているため、各種本家版のツールでは動作しません。<br>
+> KonomiTVは本家版で動作することを確認済みです。<br>
+> NodeJS v18/v20 LTS版でビルド、実行を確認しています。<br>
+
+### インストール方法
+  1. ダウンロード<br>
+    Githubからクローンする
+      ```powershell
+      git clone https://github.com/stuayu/Mirakurun.git -b dev # devブランチをチェックアウトする
+      cd Mirakurun
+      ```
+  1. ビルド
+      ```powershell
+      npm run install
+      npm run build
+      ```
+  2. サービス登録<br>
+    管理者権限でターミナルを起動して以下のコマンドを実行
+      ```powershell
+      npm run postinstall -g
+      ```
+  3. サービス起動の確認<br>
+    Windowsはタスクマネージャーからmirakurunのサービスが登録されて、実行中になっていることを確認してください。<br>
+    2.のサービス登録で登録が失敗したら、コマンドプロンプト(管理者)で<br>`SC stop mirakurun`と`SC delete mirakurun`を実行したのち、2.を再実行してください。<br><br>
+    Linuxの場合は`pm2 status mirakurun-server`で起動できているか確認してください。
+
+  4. 管理画面の確認<br>
+    http://127.0.0.1:40772
+
+### 利用方法の例
+  * 各種チューナー -> (BonDriverProxyEx) -> Mirakurun -> EPGStation -> BonDriver_EPGStation -> TVTest<br>
+  * 各種チューナー -> (BonDriverProxyEx) -> Mirakurun -> EPGStation -> [EPGStationの録画を見る](https://github.com/daig0rian/epcltvapp) -> 家庭のテレビ<br>
+  * 各種チューナー -> (BonDriverProxyEx) -> Mirakurun -> [Kodi](https://kodi.tv/) -> 家庭のテレビ<br>
+  * 各種チューナー -> (BonDriverProxyEx) -> Mirakurun -> BonDriver_mirakc(チャンネルストリーム) -> EDCB<br>
+  * 各種チューナー -> (BonDriverProxyEx) -> Mirakurun -> BonDriver_mirakc(サービスストリーム) -> TVTest<br>
+  * 各種チューナー -> (BonDriverProxyEx) -> Mirakurun -> KonomiTV<br>
+
+---
+以下本家版のドキュメントです。
 ## Docker
 
 [![dockeri.co](https://dockeri.co/image/chinachu/mirakurun)][docker-url]

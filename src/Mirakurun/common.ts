@@ -29,7 +29,7 @@ export interface User {
 export type UserRequest = Omit<User, "streamSetting">;
 
 interface StreamSetting {
-    channel: ChannelItem;
+    channel: ChannelItem[];
     networkId?: number;
     serviceId?: number;
     eventId?: number;
@@ -109,7 +109,7 @@ export function updateObject<T extends any[], U extends any[]>(target: T, input:
         } else if (typeof target[k] === "object" && typeof input[k] === "object") {
             updated = updateObject(target[k], input[k]) || updated;
             continue;
-        } else  if (target[k] === input[k]) {
+        } else if (target[k] === input[k]) {
             continue;
         }
 

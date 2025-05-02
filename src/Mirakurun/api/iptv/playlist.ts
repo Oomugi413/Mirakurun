@@ -30,12 +30,12 @@ export const get: Operation = async (req, res) => {
             continue;
         }
 
-        m += `#KODIPROP:mimetype=video/mp2t\n`;
+        m += "#KODIPROP:mimetype=video/mp2t\n";
         m += `#EXTINF:-1 tvg-id="${service.id}"`;
-        if (await Service.isLogoDataExists(service.networkId, service.logoId)) {
+        if (await Service.isLogoDataExists(service.networkId, service.serviceId, service.logoId)) {
             m += ` tvg-logo="${apiRoot}/services/${service.id}/logo"`;
         }
-        m += ` group-title="${service.channel.type}",${service.name}\n`;
+        m += ` group-title="${service.channel[0].type}",${service.name}\n`;
         m += `${apiRoot}/services/${service.id}/stream\n`;
     }
 

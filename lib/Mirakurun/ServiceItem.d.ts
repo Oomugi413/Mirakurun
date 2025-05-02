@@ -16,7 +16,7 @@ export default class ServiceItem {
     private _epgUpdatedAt;
     static getId(networkId: number, serviceId: number): number;
     private _id;
-    constructor(_channel: ChannelItem, _networkId: number, _serviceId: number, _name?: string, _type?: number, _logoId?: number, _remoteControlKeyId?: number, _epgReady?: boolean, _epgUpdatedAt?: number);
+    constructor(_channel: ChannelItem[], _networkId: number, _serviceId: number, _name?: string, _type?: number, _logoId?: number, _remoteControlKeyId?: number, _epgReady?: boolean, _epgUpdatedAt?: number);
     get id(): number;
     get networkId(): number;
     get serviceId(): number;
@@ -32,7 +32,7 @@ export default class ServiceItem {
     set epgReady(epgReady: boolean);
     get epgUpdatedAt(): number;
     set epgUpdatedAt(time: number);
-    get channel(): ChannelItem;
+    get channel(): ChannelItem[];
     export(): db.Service;
     getStream(userRequest: common.UserRequest, output: stream.Writable): Promise<TSFilter>;
     getOrder(): number;

@@ -29,7 +29,7 @@ export interface Service {
     remoteControlKeyId?: number;
     epgReady?: boolean;
     epgUpdatedAt?: number;
-    channel: Channel;
+    channel: Channel[];
 
     /** @deprecated */
     logoData?: string; // base64

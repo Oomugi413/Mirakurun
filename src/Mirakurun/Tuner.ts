@@ -72,7 +72,7 @@ export default class Tuner {
         return this._initTS({
             ...userReq,
             streamSetting: {
-                channel,
+                channel: [channel],
                 networkId,
                 parseEIT: true
             }
@@ -127,7 +127,7 @@ export default class Tuner {
             priority: -1,
             disableDecoder: true,
             streamSetting: {
-                channel,
+                channel: [channel],
                 networkId,
                 parseEIT: true
             }
@@ -158,7 +158,7 @@ export default class Tuner {
             priority: -1,
             disableDecoder: true,
             streamSetting: {
-                channel,
+                channel: [channel],
                 parseNIT: true,
                 parseSDT: true
             }
@@ -284,20 +284,39 @@ export default class Tuner {
                 setting.parseEIT = false;
             }
 
-            const devices = this._getDevicesByType(setting.channel.type);
+            /**
+             * チューナーグループとチャンネルの組み合わせが渡される
+             * 想定としては次のように同一チャンネルが映るチューナー情報が渡される
+             * {type: GR, channel: 0}{type: NW1, channel: 17}
+             * ループを回し、GR側が利用中や利用不可の時にNW1側のチューナーを利用する
+             */
+            const devices = []; // チューナーデバイスを格納
+            const channels = []; // チャンネル情報を格納
 
-            let tryCount = 25;
-            const wait_tuner_ms = 1000; // ms default(1s)
+            for (const ch of setting.channel) {
+                const device = this._getDevicesByType(ch.type);
+                // チューナーと同じ数チャンネル情報を複製
+                for (let index = 0; index < device.length; index++) {
+                    devices.push(device[index]);
+                    channels.push(ch);
+                }
+            }
+
             const length = devices.length;
+            let tryCount: number = 25;
+            const waitTunerMs: number = 1000; // ms default(1s)
+            let isSuccessStream: boolean = true; // 関数findが正常に終了したか
 
             function find() {
 
                 let device: TunerDevice = null;
+                let channel: ChannelItem = null;
 
                 // 1. join to existing
                 for (let i = 0; i < length; i++) {
-                    if (devices[i].isAvailable === true && devices[i].channel === setting.channel) {
+                    if (devices[i].isAvailable === true && devices[i].channel === channels[i]) {
                         device = devices[i];
+                        channel = channels[i];
                         break;
                     }
                 }
@@ -317,8 +336,10 @@ export default class Tuner {
                                     await common.sleep(1000);
                                 })
                                 .then(() => resolve(null))
-                                .catch(err => reject(err));
-
+                                .catch(err => {
+                                    reject(err);
+                                    // isSuccessStream = false; // error
+                                });
                             return;
                         }
                     }
@@ -329,6 +350,7 @@ export default class Tuner {
                     for (let i = 0; i < length; i++) {
                         if (devices[i].isFree === true) {
                             device = devices[i];
+                            channel = channels[i];
                             break;
                         }
                     }
@@ -339,6 +361,7 @@ export default class Tuner {
                     for (let i = 0; i < length; i++) {
                         if (devices[i].isAvailable === true && devices[i].users.length === 0) {
                             device = devices[i];
+                            channel = channels[i];
                             break;
                         }
                     }
@@ -346,13 +369,18 @@ export default class Tuner {
 
                 // 4. takeover existing
                 if (device === null) {
+                    const tmp = [];
                     devices.sort((t1, t2) => {
+                        tmp.push(t1.getPriority() - t2.getPriority());
                         return t1.getPriority() - t2.getPriority();
                     });
+
+                    channels.sort(() => tmp.shift());
 
                     for (let i = 0; i < length; i++) {
                         if (devices[i].isUsing === true && devices[i].getPriority() < user.priority) {
                             device = devices[i];
+                            channel = channels[i];
                             break;
                         }
                     }
@@ -361,20 +389,18 @@ export default class Tuner {
                 if (device === null) {
                     --tryCount;
                     if (tryCount > 0) {
-                        setTimeout(find, wait_tuner_ms);
+                        setTimeout(find, waitTunerMs);
                     } else {
                         reject(new Error("no available tuners"));
+                        // isSuccessStream = false; // error
                     }
                 } else {
+                    log.debug("checking tuner type:%s channel: %s", channel.type, channel.channel);
                     let output: Writable;
-                    if (user.disableDecoder === true || device.decoder === null) {
-                        output = dest;
-                    } else {
-                        output = new TSDecoder({
-                            output: dest,
-                            command: device.decoder
-                        });
-                    }
+                    output = user.disableDecoder === true || device.decoder === null ? dest : new TSDecoder({
+                        output: dest,
+                        command: device.decoder
+                    });
 
                     const tsFilter = new TSFilter({
                         output,
@@ -384,24 +410,26 @@ export default class Tuner {
                         parseNIT: setting.parseNIT,
                         parseSDT: setting.parseSDT,
                         parseEIT: setting.parseEIT,
-                        tsmfRelTs: setting.channel.tsmfRelTs
+                        tsmfRelTs: channel.tsmfRelTs
                     });
 
                     Object.defineProperty(user, "streamInfo", {
                         get: () => tsFilter.streamInfo
                     });
 
-                    device.startStream(user, tsFilter, setting.channel)
+                    device.startStream(user, tsFilter, channel)
                         .then(() => {
                             resolve(tsFilter);
                         })
                         .catch((err) => {
                             tsFilter.end();
                             reject(err);
+                            isSuccessStream = false; // error
                         });
                 }
             }
             find();
+            // if (isSuccessStream) { break; } // 問題がなければループから抜ける
         });
     }
 

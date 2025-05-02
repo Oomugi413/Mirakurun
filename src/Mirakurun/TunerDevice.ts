@@ -89,17 +89,15 @@ export default class TunerDevice extends EventEmitter {
     }
 
     get users(): User[] {
-        return [...this._users].map(user => {
-            return {
-                id: user.id,
-                priority: user.priority,
-                agent: user.agent,
-                url: user.url,
-                disableDecoder: user.disableDecoder,
-                streamSetting: user.streamSetting,
-                streamInfo: user.streamInfo
-            };
-        });
+        return [...this._users].map(user => ({
+            id: user.id,
+            priority: user.priority,
+            agent: user.agent,
+            url: user.url,
+            disableDecoder: user.disableDecoder,
+            streamSetting: user.streamSetting,
+            streamInfo: user.streamInfo
+        }));
     }
 
     get decoder(): string {

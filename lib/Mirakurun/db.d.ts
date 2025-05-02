@@ -9,7 +9,7 @@ export interface Service {
     remoteControlKeyId?: number;
     epgReady?: boolean;
     epgUpdatedAt?: number;
-    channel: Channel;
+    channel: Channel[];
     logoData?: string;
 }
 export interface Channel {

@@ -50,10 +50,10 @@ export interface Channel {
 }
 
 export type ChannelType = "GR" | "BS" | "CS" | "SKY" |
-                        "NW1" | "NW2" | "NW3" | "NW4" | "NW5" | "NW6" | "NW7" | "NW8" | "NW9" | "NW10" |
-                        "NW11" | "NW12" | "NW13" | "NW14" | "NW15" | "NW16" | "NW17" | "NW18" | "NW19" | "NW20" |
-                        "NW21" | "NW22" | "NW23" | "NW24" | "NW25" | "NW26" | "NW27" | "NW28" | "NW29" | "NW30" |
-                        "NW31" | "NW32" | "NW33" | "NW34" | "NW35" | "NW36" | "NW37" | "NW38" | "NW39" | "NW40"; // NWを追加
+    "NW1" | "NW2" | "NW3" | "NW4" | "NW5" | "NW6" | "NW7" | "NW8" | "NW9" | "NW10" |
+    "NW11" | "NW12" | "NW13" | "NW14" | "NW15" | "NW16" | "NW17" | "NW18" | "NW19" | "NW20" |
+    "NW21" | "NW22" | "NW23" | "NW24" | "NW25" | "NW26" | "NW27" | "NW28" | "NW29" | "NW30" |
+    "NW31" | "NW32" | "NW33" | "NW34" | "NW35" | "NW36" | "NW37" | "NW38" | "NW39" | "NW40"; // NWを追加
 
 export type ChannelScanMode = "Channel" | "Service";
 
@@ -68,7 +68,7 @@ export interface Service {
     remoteControlKeyId?: number;
     epgReady?: boolean;
     epgUpdatedAt?: number;
-    channel?: Channel;
+    channel?: Channel[];
 }
 
 export interface Program {

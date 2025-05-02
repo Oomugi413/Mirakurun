@@ -110,7 +110,11 @@ export default class ChannelItem {
             return;
         }
 
+        /**
+         * すでにサービスが存在する場合、チャンネルタイプとチャンネルを追加
+         */
         if (_.service.findByChannel(this).some(service => service.serviceId === serviceId) === true) {
+            // const serviceitem = _.service.findByChannel(this);
             return;
         }
 
@@ -141,7 +145,7 @@ export default class ChannelItem {
             log.debug("ChannelItem#'%s' serviceId=%d: %s", this._name, serviceId, JSON.stringify(service, null, "  "));
 
             _.service.add(
-                new ServiceItem(this, service.networkId, service.serviceId, service.name, service.type, service.logoId)
+                new ServiceItem([this], service.networkId, service.serviceId, service.name, service.type, service.logoId)
             );
         });
     }
@@ -177,6 +181,7 @@ export default class ChannelItem {
             services.forEach(service => {
 
                 const item = _.service.get(service.networkId, service.serviceId);
+                // すでに同一サービスが存在している
                 if (item !== null) {
                     item.name = service.name;
                     item.type = service.type;
@@ -184,10 +189,18 @@ export default class ChannelItem {
                         item.logoId = service.logoId;
                     }
                     item.remoteControlKeyId = service.remoteControlKeyId;
+                    // タイプとチャンネルが一致した場合スキップする
+                    for (let index = 0; index < item.channel.length; index++) {
+                        if (this._type === item.channel[index].type &&
+                            this._channel === item.channel[index].channel) {
+                            return;
+                        }
+                    }
+                    item.channel.push(this);
                 } else if (add === true) {
                     _.service.add(
                         new ServiceItem(
-                            this,
+                            [this],
                             service.networkId,
                             service.serviceId,
                             service.name,

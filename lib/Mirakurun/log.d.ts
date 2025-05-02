@@ -7,8 +7,8 @@ export declare enum LogLevel {
     "INFO" = 2,
     "DEBUG" = 3
 }
-export declare let logLevel: LogLevel;
-export declare let maxLogHistory: number;
+export declare const logLevel: LogLevel;
+export declare const maxLogHistory: number;
 declare class LogEvent extends EventEmitter {
     logs: string[];
     emit(ev: "data", level: LogLevel, log: string): boolean;

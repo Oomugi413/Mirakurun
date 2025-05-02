@@ -273,7 +273,7 @@ export default class Client {
         return res.body as apid.Service;
     }
 
-    async getServiceStreamByChannel(opt: { type: apid.ChannelType, channel: string, sid: apid.ServiceId, decode?: boolean, priority?: number, signal?: AbortSignal }): Promise<http.IncomingMessage>;
+    async getServiceStreamByChannel(opt: { type: apid.ChannelType; channel: string; sid: apid.ServiceId; decode?: boolean; priority?: number; signal?: AbortSignal }): Promise<http.IncomingMessage>;
     async getServiceStreamByChannel(type: apid.ChannelType, channel: string, sid: apid.ServiceId, decode?: boolean, priority?: number): Promise<http.IncomingMessage>;
     async getServiceStreamByChannel(...args: any[]) {
 
@@ -308,7 +308,7 @@ export default class Client {
         }, { priority, signal });
     }
 
-    async getChannelStream(opt: { type: apid.ChannelType, channel: string, decode?: boolean, priority?: number, signal?: AbortSignal }): Promise<http.IncomingMessage>;
+    async getChannelStream(opt: { type: apid.ChannelType; channel: string; decode?: boolean; priority?: number; signal?: AbortSignal }): Promise<http.IncomingMessage>;
     async getChannelStream(type: apid.ChannelType, channel: string, decode?: boolean, priority?: number): Promise<http.IncomingMessage>;
     async getChannelStream(...args: any[]): Promise<http.IncomingMessage> {
 
@@ -351,7 +351,7 @@ export default class Client {
         return res.body as apid.Program;
     }
 
-    async getProgramStream(opt: { id: apid.ProgramId, decode?: boolean, priority?: number, signal?: AbortSignal }): Promise<http.IncomingMessage>;
+    async getProgramStream(opt: { id: apid.ProgramId; decode?: boolean; priority?: number; signal?: AbortSignal }): Promise<http.IncomingMessage>;
     async getProgramStream(id: apid.ProgramId, decode?: boolean, priority?: number): Promise<http.IncomingMessage>;
     async getProgramStream(...args: any[]): Promise<http.IncomingMessage> {
 
@@ -396,7 +396,7 @@ export default class Client {
         return res.body as Buffer;
     }
 
-    async getServiceStream(opt: { id: apid.ServiceItemId, decode?: boolean, priority?: number, signal?: AbortSignal }): Promise<http.IncomingMessage>;
+    async getServiceStream(opt: { id: apid.ServiceItemId; decode?: boolean; priority?: number; signal?: AbortSignal }): Promise<http.IncomingMessage>;
     async getServiceStream(id: apid.ServiceItemId, decode?: boolean, priority?: number): Promise<http.IncomingMessage>;
     async getServiceStream(...args: any[]): Promise<http.IncomingMessage> {
 
@@ -550,11 +550,7 @@ export default class Client {
         }
 
         // tslint:disable-next-line:prefer-conditional-expression
-        if (this.userAgent === "") {
-            opt.headers["User-Agent"] = this._userAgent;
-        } else {
-            opt.headers["User-Agent"] = this.userAgent + " " + this._userAgent;
-        }
+        opt.headers["User-Agent"] = this.userAgent === "" ? this._userAgent : this.userAgent + " " + this._userAgent;
 
         if (opt.headers["X-Mirakurun-Priority"] === undefined) {
             if (option.priority === undefined) {

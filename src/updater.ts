@@ -15,7 +15,7 @@
 */
 import { spawn, ChildProcess } from "child_process";
 import { openSync } from "fs";
-import * as latestVersion from "latest-version";
+import latestVersion from "latest-version";
 const pkg = require("../package.json");
 
 if (process.env.DOCKER === "YES") {

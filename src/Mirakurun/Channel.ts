@@ -159,9 +159,9 @@ export default class Channel {
 
     private _epgGatherer(): void {
         const nw_type_list = ["NW1", "NW2", "NW3", "NW4", "NW5", "NW6", "NW7", "NW8", "NW9", "NW10",
-                            "NW11", "NW12", "NW13", "NW14", "NW15", "NW16", "NW17", "NW18", "NW19", "NW20",
-                            "NW21", "NW22", "NW23", "NW24", "NW25", "NW26", "NW27", "NW28", "NW29", "NW30",
-                            "NW31", "NW32", "NW33", "NW34", "NW35", "NW36", "NW37", "NW38", "NW39", "NW40"];
+            "NW11", "NW12", "NW13", "NW14", "NW15", "NW16", "NW17", "NW18", "NW19", "NW20",
+            "NW21", "NW22", "NW23", "NW24", "NW25", "NW26", "NW27", "NW28", "NW29", "NW30",
+            "NW31", "NW32", "NW33", "NW34", "NW35", "NW36", "NW37", "NW38", "NW39", "NW40"];
 
         queue.add(async () => {
 
@@ -178,60 +178,62 @@ export default class Channel {
 
                 queue.add(async () => {
 
-                    if (service.epgReady === true) {
-                        const now = Date.now();
-                        // EPG取得間隔優先順位 GR > BS > CS > SKY > NW > 全体設定
-                        if (service.channel.type === "GR" && now - service.epgUpdatedAt < this._epgGatheringIntervalGR) {
-                            log.info("Network#%d EPG gathering has skipped by `epgGatheringIntervalGR`", networkId);
-                            return;
-                        }
-                        if (service.channel.type === "BS" && now - service.epgUpdatedAt < this._epgGatheringIntervalBS) {
-                            log.info("Network#%d EPG gathering has skipped by `epgGatheringIntervalBS`", networkId);
-                            return;
-                        }
-                        if (service.channel.type === "CS" && now - service.epgUpdatedAt < this._epgGatheringIntervalCS) {
-                            log.info("Network#%d EPG gathering has skipped by `epgGatheringIntervalCS`", networkId);
-                            return;
-                        }
-                        if (service.channel.type === "SKY" && now - service.epgUpdatedAt < this._epgGatheringIntervalSKY) {
-                            log.info("Network#%d EPG gathering has skipped by `epgGatheringIntervalSKY`", networkId);
-                            return;
-                        }
-                        if (nw_type_list.indexOf(service.channel.type) !== -1) {
-                            if (now - service.epgUpdatedAt < this._epgGatheringIntervalNW) {
-                                log.info("Network#%d EPG gathering has skipped by `epgGatheringIntervalNW`", networkId);
+                    for (const ch of service.channel) {
+                        if (service.epgReady === true) {
+                            const now = Date.now();
+                            // EPG取得間隔優先順位 GR > BS > CS > SKY > NW > 全体設定
+                            if (ch.type === "GR" && now - service.epgUpdatedAt < this._epgGatheringIntervalGR) {
+                                log.info("Network#%d EPG gathering has skipped by `epgGatheringIntervalGR`", networkId);
                                 return;
                             }
-                        }
-                        if (now - service.epgUpdatedAt > 1000 * 60 * 60 * 6) { // 6 hours
-                            log.info("Network#%d EPG gathering is resuming forcibly because reached maximum pause time", networkId);
-                            service.epgReady = false;
-                        } else {
-                            const currentPrograms = _.program.findByNetworkIdAndTime(networkId, now)
-                                .filter(program => !!program.name && program.name !== "放送休止");
-                            if (currentPrograms.length === 0) {
-                                const networkPrograms = _.program.findByNetworkId(networkId);
-                                if (networkPrograms.length > 0) {
-                                    log.info("Network#%d EPG gathering has skipped because broadcast is off", networkId);
+                            if (ch.type === "BS" && now - service.epgUpdatedAt < this._epgGatheringIntervalBS) {
+                                log.info("Network#%d EPG gathering has skipped by `epgGatheringIntervalBS`", networkId);
+                                return;
+                            }
+                            if (ch.type === "CS" && now - service.epgUpdatedAt < this._epgGatheringIntervalCS) {
+                                log.info("Network#%d EPG gathering has skipped by `epgGatheringIntervalCS`", networkId);
+                                return;
+                            }
+                            if (ch.type === "SKY" && now - service.epgUpdatedAt < this._epgGatheringIntervalSKY) {
+                                log.info("Network#%d EPG gathering has skipped by `epgGatheringIntervalSKY`", networkId);
+                                return;
+                            }
+                            if (nw_type_list.indexOf(ch.type) !== -1) {
+                                if (now - service.epgUpdatedAt < this._epgGatheringIntervalNW) {
+                                    log.info("Network#%d EPG gathering has skipped by `epgGatheringIntervalNW`", networkId);
                                     return;
                                 }
+                            }
+                            if (now - service.epgUpdatedAt > 1000 * 60 * 60 * 6) { // 6 hours
+                                log.info("Network#%d EPG gathering is resuming forcibly because reached maximum pause time", networkId);
                                 service.epgReady = false;
+                            } else {
+                                const currentPrograms = _.program.findByNetworkIdAndTime(networkId, now)
+                                    .filter(program => !!program.name && program.name !== "放送休止");
+                                if (currentPrograms.length === 0) {
+                                    const networkPrograms = _.program.findByNetworkId(networkId);
+                                    if (networkPrograms.length > 0) {
+                                        log.info("Network#%d EPG gathering has skipped because broadcast is off", networkId);
+                                        return;
+                                    }
+                                    service.epgReady = false;
+                                }
                             }
                         }
-                    }
 
-                    if (status.epg[networkId] === true) {
-                        log.info("Network#%d EPG gathering is already in progress on another stream", networkId);
-                        return;
-                    }
+                        if (status.epg[networkId] === true) {
+                            log.info("Network#%d EPG gathering is already in progress on another stream", networkId);
+                            return;
+                        }
 
-                    log.info("Network#%d EPG gathering has started", networkId);
+                        log.info("Network#%d EPG gathering has started", networkId);
 
-                    try {
-                        await _.tuner.getEPG(service.channel);
-                        log.info("Network#%d EPG gathering has finished", networkId);
-                    } catch (e) {
-                        log.warn("Network#%d EPG gathering has failed [%s]", networkId, e);
+                        try {
+                            await _.tuner.getEPG(ch);
+                            log.info("Network#%d EPG gathering has finished", networkId);
+                        } catch (e) {
+                            log.warn("Network#%d EPG gathering has failed [%s]", networkId, e);
+                        }
                     }
                 });
 

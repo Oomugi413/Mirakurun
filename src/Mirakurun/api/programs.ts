@@ -23,11 +23,7 @@ export const get: Operation = (req, res) => {
     let programs: db.Program[];
 
     // tslint:disable-next-line:prefer-conditional-expression
-    if (Object.keys(req.query).length !== 0) {
-        programs = _.program.findByQuery(req.query);
-    } else {
-        programs = Array.from(_.program.itemMap.values());
-    }
+    programs = Object.keys(req.query).length !== 0 ? _.program.findByQuery(req.query) : Array.from(_.program.itemMap.values());
 
     api.responseJSON(res, programs);
 };

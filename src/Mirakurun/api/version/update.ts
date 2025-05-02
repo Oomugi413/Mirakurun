@@ -18,7 +18,7 @@ import { join } from "path";
 import { spawn } from "child_process";
 import { tmpdir } from "os";
 import { Tail } from "tail";
-import * as latestVersion from "latest-version";
+import latestVersion from "latest-version";
 import * as api from "../../api";
 const current = require("../../../../package.json").version as string;
 
@@ -42,7 +42,7 @@ export const put: Operation = async (req, res) => {
 
     const path = join(tmpdir(), "Mirakurun_Updating.log");
 
-    res.write(`> node lib/updater\n\n`);
+    res.write("> node lib/updater\n\n");
 
     const env = JSON.parse(JSON.stringify(process.env));
     env.UPDATER_LOG_PATH = path;

@@ -2,11 +2,11 @@
 import ChannelItem from "./ChannelItem";
 import ServiceItem from "./ServiceItem";
 export default class Service {
-    static getLogoDataPath(networkId: number, logoId: number): string;
-    static getLogoDataMTime(networkId: number, logoId: number): Promise<number>;
-    static isLogoDataExists(networkId: number, logoId: number): Promise<boolean>;
-    static loadLogoData(networkId: number, logoId: number): Promise<Buffer>;
-    static saveLogoData(networkId: number, logoId: number, data: Uint8Array, retrying?: boolean): Promise<void>;
+    static getLogoDataPath(networkId: number, serviceId: number, logoId: number): string;
+    static getLogoDataMTime(networkId: number, serviceId: number, logoId: number): Promise<number>;
+    static isLogoDataExists(networkId: number, serviceId: number, logoId: number): Promise<boolean>;
+    static loadLogoData(networkId: number, serviceId: number, logoId: number): Promise<Buffer>;
+    static saveLogoData(networkId: number, serviceId: number, logoId: number, data: Uint8Array, retrying?: boolean): Promise<void>;
     private _items;
     private _saveTimerId;
     constructor();

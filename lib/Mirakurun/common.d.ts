@@ -11,7 +11,7 @@ export interface User {
 }
 export type UserRequest = Omit<User, "streamSetting">;
 interface StreamSetting {
-    channel: ChannelItem;
+    channel: ChannelItem[];
     networkId?: number;
     serviceId?: number;
     eventId?: number;

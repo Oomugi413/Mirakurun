@@ -60,12 +60,12 @@ const StatusView: React.FC<{ uiState: UIState, uiStateEvents: EventEmitter }> = 
         uiStateEvents.on("update:status", onStatusUpdate);
 
         const onServicesUpdate = () => {
-            setServices([ ...uiState.services ]);
+            setServices([...uiState.services]);
         };
         uiStateEvents.on("update:services", onServicesUpdate);
 
         const onTunersUpdate = () => {
-            setTuners([ ...uiState.tuners ]);
+            setTuners([...uiState.tuners]);
         };
         uiStateEvents.on("update:tuners", onTunersUpdate);
 
@@ -112,6 +112,10 @@ const StatusView: React.FC<{ uiState: UIState, uiStateEvents: EventEmitter }> = 
         if (service.type !== 1 && service.type !== 173) {
             continue;
         }
+        let chData: string = "";
+        for (const ch of service.channel) {
+            chData += `Channel: ` + ch.type + ` / ` + ch.channel + `\n`
+        }
         const tooltipId = `service-list-item#${i}-tooltip`;
         serviceList.push(
             <div key={`service-list-item${i}`} className="ms-Grid-col ms-sm6 ms-xl3 ms-xxl2">
@@ -124,7 +128,7 @@ const StatusView: React.FC<{ uiState: UIState, uiStateEvents: EventEmitter }> = 
                         `#${service.id}\n` +
                         `SID: 0x${service.serviceId.toString(16).toUpperCase()} (${service.serviceId})\n` +
                         `NID: 0x${service.networkId.toString(16).toUpperCase()} (${service.networkId})\n` +
-                        `Channel: ${service.channel.type} / ${service.channel.channel}`
+                        chData
                     )}
                 >
                     <div className="ms-Grid" area-describeby={tooltipId} style={{ margin: 4 }}>
