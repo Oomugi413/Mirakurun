@@ -30,6 +30,7 @@ import * as system from "./system";
 import regexp from "./regexp";
 import _ from "./_";
 import { createRPCServer, initRPCNotifier } from "./rpc";
+import path from "path";
 
 const pkg = require("../../package.json");
 
@@ -159,7 +160,7 @@ export class Server {
             app: app,
             apiDoc: api,
             docsPath: "/docs",
-            paths: "./lib/Mirakurun/api"
+            paths: path.resolve(__dirname, "api")
         });
 
         app.use((err, req, res: express.Response, next) => {
