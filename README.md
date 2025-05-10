@@ -46,11 +46,18 @@ A Japanese digital TV tuner API server specifically designed for "Air" (code nam
   2. 起動
     管理者権限でターミナルを起動して以下のコマンドを実行
       ```powershell
-      yarn run start.win32
+      yarn start.win32
       ```
 
   3. 管理画面の確認<br>
     http://127.0.0.1:40772
+
+  4. Windowsのサービス化<br>
+      GUIからの再起動コマンドは現在動作しません。
+      ```powershell
+      yarn install-win-service # インストール実行
+      yarn uninstall-win-service # アンインストール実行
+      ```
 
 ### 利用方法の例
   * 各種チューナー -> (BonDriverProxyEx) -> Mirakurun -> EPGStation -> BonDriver_EPGStation -> TVTest<br>
