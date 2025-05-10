@@ -162,9 +162,15 @@ export class Tuner {
         }
 
         let networkId: number;
+        let services: apid.Service[] = [];
 
         // 渡されてきたチャンネル情報から、最初のチャンネルのサービス情報を取得(どの場所でも同じサービス情報が取得できる)
-        const services = channel[0].getServices();
+        for (const ch of channel) {
+            services.push(...ch.getServices());
+        }
+        // 重複を排除
+        services = [...new Set(services)];
+
         if (services.length === 0) {
             throw new Error("no available services in channel");
         }
