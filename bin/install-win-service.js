@@ -16,8 +16,14 @@ const svc = new Service({
         {
             name: 'LOCALAPPDATA',
             value: process.env.LOCALAPPDATA
+        },
+        {
+            name: 'USING_WINSER',
+            value: '1'
         }
     ],
+    logmode: 'rotate',
+    logpath: path.resolve(__dirname, '..', 'local_data'),
 });
 
 // イベント定義
