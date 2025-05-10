@@ -420,6 +420,54 @@ export class Service {
     }
 
     private async _scan(channel: ChannelItem, add: boolean): Promise<void> {
+        // チャンネルの並び替えのために追加
+        const channelOrder = {
+            GR: 1,
+            BS: 2,
+            CS: 3,
+            SKY: 4,
+            NW1: 5,
+            NW2: 6,
+            NW3: 7,
+            NW4: 8,
+            NW5: 9,
+            NW6: 10,
+            NW7: 11,
+            NW8: 12,
+            NW9: 13,
+            NW10: 14,
+            NW11: 15,
+            NW12: 16,
+            NW13: 17,
+            NW14: 18,
+            NW15: 19,
+            NW16: 20,
+            NW17: 21,
+            NW18: 22,
+            NW19: 23,
+            NW20: 24,
+            NW21: 25,
+            NW22: 26,
+            NW23: 27,
+            NW24: 28,
+            NW25: 29,
+            NW26: 30,
+            NW27: 31,
+            NW28: 32,
+            NW29: 33,
+            NW30: 34,
+            NW31: 35,
+            NW32: 36,
+            NW33: 37,
+            NW34: 38,
+            NW35: 39,
+            NW36: 40,
+            NW37: 41,
+            NW38: 42,
+            NW39: 43,
+            NW40: 44
+        };
+        
         log.info("ChannelItem#'%s' service scan has started", channel.name);
 
         let services: Awaited<ReturnType<typeof _.tuner.getServices>>;
@@ -434,6 +482,7 @@ export class Service {
 
         services.forEach(service => {
             const item = this.get(service.networkId, service.serviceId);
+            // すでに同一サービスが存在している
             if (item !== null) {
                 item.name = service.name;
                 item.type = service.type;
@@ -441,6 +490,16 @@ export class Service {
                     item.logoId = service.logoId;
                 }
                 item.remoteControlKeyId = service.remoteControlKeyId;
+                // タイプとチャンネルが一致した場合スキップする
+                for (let index = 0; index < item.channel.length; index++) {
+                    if (channel.type === item.channel[index].type &&
+                        channel.channel === item.channel[index].channel) {
+                        return;
+                    }
+                }
+                item.channel.push(channel);
+                // 新規で追加したチャンネルをソートする GR>BS>CS>...>NW40
+                item.channel.sort((a, b) => channelOrder[a.type] - channelOrder[b.type]);
             } else if (add === true) {
                 this.add(
                     new ServiceItem(
