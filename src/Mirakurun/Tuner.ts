@@ -275,7 +275,7 @@ export class Tuner {
             }
 
             if (Array.isArray(tuner.types) === false) {
-                console.log(tuner);
+                log.debug(tuner);
                 log.error("invalid type of property `types` in tuner#%s configuration", i);
                 return;
             }
@@ -332,8 +332,8 @@ export class Tuner {
          * {type: GR, channel: 0}{type: NW1, channel: 17}
          * ループを回し、GR側が利用中や利用不可の時にNW1側のチューナーを利用する
          */
-        const devices = []; // チューナーデバイスを格納
-        const channels = []; // チャンネル情報を格納
+        const devices: TunerDevice[] = []; // チューナーデバイスを格納
+        const channels: ChannelItem[] = []; // チャンネル情報を格納
 
         for (const ch of setting.channel) {
             const device = this._getDevicesByType(ch.type);
@@ -353,7 +353,7 @@ export class Tuner {
         }
 
         while (tryCount > 0) {
-            const device = this._pickTunerDevice(devices, setting.channel, user.priority);
+            const device = this._pickTunerDevice(devices, channels, user.priority);
 
             if (device === null) {
                 // retry
@@ -460,7 +460,7 @@ private _pickTunerDevice(
             if (matchedChannel) {
                 selectedDevice = device;
                 selectedChannel = matchedChannel;
-                console.log(`Found existing device ${selectedDevice} for channel ${selectedChannel}`);
+                log.debug(`Found existing device ${selectedDevice.config.name} for channel ${selectedChannel.channel}`);
                 break; // 見つかったらループを抜ける
             }
         }
@@ -472,7 +472,7 @@ private _pickTunerDevice(
             if (devices[i].isFree === true) {
                 selectedDevice = devices[i];
                 selectedChannel = channels[i];
-                console.log(`Found free device ${selectedDevice} for new channel ${selectedChannel}`);
+                log.debug(`Found free device ${selectedDevice.config.name} for new channel ${selectedChannel.channel}`);
                 break; // 見つかったらループを抜ける
             }
         }
@@ -485,7 +485,7 @@ private _pickTunerDevice(
             if (devices[i].isAvailable === true && devices[i].users.length === 0) {
                 selectedDevice = devices[i];
                 selectedChannel = channels[i];
-                console.log(`Found idle device ${selectedDevice} to replace for channel ${selectedChannel}`);
+                log.debug(`Found idle device ${selectedDevice.config.name} to replace for channel ${selectedChannel.channel}`);
                 break; // 見つかったらループを抜ける
             }
         }
@@ -510,7 +510,7 @@ private _pickTunerDevice(
             if (sortedDevices[i].isUsing === true && sortedDevices[i].getPriority() < priority) {
                 selectedDevice = sortedDevices[i];
                 selectedChannel = sortedChannels[i]; // 乗っ取るチャンネル
-                console.log(`Taking over lower priority device ${selectedDevice} (priority ${selectedDevice.getPriority()}) for channel ${selectedChannel} (request priority ${priority})`);
+                log.debug(`Taking over lower priority device ${selectedDevice.config.name} (priority ${selectedDevice.getPriority()}) for channel ${selectedChannel.channel} (request priority ${priority})`);
                 break; // 見つかったらループを抜ける
             }
         }
@@ -520,7 +520,7 @@ private _pickTunerDevice(
     if (selectedDevice && selectedChannel) {
         return [selectedDevice, selectedChannel];
     } else {
-        // console.log("利用可能なチューナーデバイスが見つかりませんでした（指定された優先順位内）。");
+        // log.debug("利用可能なチューナーデバイスが見つかりませんでした（指定された優先順位内）。");
         return null;
     }
 }
