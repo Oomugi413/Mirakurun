@@ -467,7 +467,7 @@ export class Service {
             NW39: 43,
             NW40: 44
         };
-        
+
         log.info("ChannelItem#'%s' service scan has started", channel.name);
 
         let services: Awaited<ReturnType<typeof _.tuner.getServices>>;
