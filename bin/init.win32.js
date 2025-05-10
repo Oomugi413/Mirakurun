@@ -27,6 +27,21 @@ const proc = require("../processes.json").apps[0];
 const configDir = path.join(process.cwd(), "local_config");
 const dataDir = path.join(process.cwd(), "local_data");
 
+// ログファイルパス
+const stdoutPath = path.join(dataDir, 'stdout.log');
+const stderrPath = path.join(dataDir, 'stderr.log');
+
+// 既存ログを削除
+if (fs.existsSync(stdoutPath)) fs.unlinkSync(stdoutPath);
+if (fs.existsSync(stderrPath)) fs.unlinkSync(stderrPath);
+
+// 書き込みストリーム作成（上書き）
+const stdout = fs.createWriteStream(stdoutPath, { flags: 'a' });
+const stderr = fs.createWriteStream(stderrPath, { flags: 'a' });
+
+process.stdout.write = stdout.write.bind(stdout);
+process.stderr.write = stderr.write.bind(stderr);
+
 for (const key in proc.env) {
     setEnv(key, proc.env[key]);
 }

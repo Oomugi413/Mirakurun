@@ -43,6 +43,8 @@
     "build": "npm run build:server && npm run build:webpack",
     "build:server": "tslint --project . && tsc --declaration",
     "build:webpack": "webpack",
+    "install-win-service": "node bin/install-win-service.js",
+    "uninstall-win-service": "node bin/uninstall-win-service.js",
     "watch": "concurrently -n w: npm:watch:*",
     "watch:server": "tsc -w --declaration",
     "watch:webpack": "webpack -w",
@@ -114,6 +116,9 @@
     "typescript": "5.7",
     "webpack": "^5.77.0",
     "webpack-cli": "^4.9.2"
+  },
+  "optionalDependencies": {
+    "node-windows": "^1.0.0"
   },
   "engines": {
     "node": "^18 || ^20 || ^22"
