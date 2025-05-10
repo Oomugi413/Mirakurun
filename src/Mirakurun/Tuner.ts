@@ -520,7 +520,7 @@ private _pickTunerDevice(
     if (selectedDevice && selectedChannel) {
         return [selectedDevice, selectedChannel];
     } else {
-        console.log("利用可能なチューナーデバイスが見つかりませんでした（指定された優先順位内）。");
+        // console.log("利用可能なチューナーデバイスが見つかりませんでした（指定された優先順位内）。");
         return null;
     }
 }
