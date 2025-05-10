@@ -41,6 +41,7 @@ A Japanese digital TV tuner API server specifically designed for "Air" (code nam
   1. ビルド
       ```powershell
       npm install -g yarn
+      yarn install
       yarn build
       ```
   2. 起動
