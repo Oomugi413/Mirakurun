@@ -133,7 +133,6 @@ export class Server {
 
             res.setHeader("Cross-Origin-Resource-Policy", "cross-origin");
 
-            }
             res.setHeader("Server", "Mirakurun/" + pkg.version);
             next();
         });

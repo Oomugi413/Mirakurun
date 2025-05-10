@@ -226,7 +226,7 @@ const TunersManager: React.FC<{ tuners: TunerDevice[], rpc: RPCClient }> = ({ tu
                 ch: (
                     <>
                         <Icon title="Channel" iconName="TVMonitor" />
-                        <Text style={{ marginLeft: 8 }}>{user.streamSetting.channel.type} / {user.streamSetting.channel.channel}</Text>
+                        <Text style={{ marginLeft: 8 }}>{user.streamSetting.channel[0].type} / {user.streamSetting.channel[0].channel}</Text>
                     </>
                 ),
                 sid: (

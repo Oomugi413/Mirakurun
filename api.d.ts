@@ -51,8 +51,6 @@ export type ChannelType = "GR" | "BS" | "CS" | "SKY" |
     "NW21" | "NW22" | "NW23" | "NW24" | "NW25" | "NW26" | "NW27" | "NW28" | "NW29" | "NW30" |
     "NW31" | "NW32" | "NW33" | "NW34" | "NW35" | "NW36" | "NW37" | "NW38" | "NW39" | "NW40"; // NWを追加
 
-export type ChannelScanMode = "Channel" | "Service";
-
 export interface Service {
     id: ServiceItemId;
     serviceId: ServiceId;
@@ -201,7 +199,7 @@ export interface TunerUser {
 }
 
 interface StreamSetting {
-    channel: ConfigChannelsItem;
+    channel: ConfigChannelsItem[];
     networkId?: number;
     serviceId?: number;
     eventId?: number;

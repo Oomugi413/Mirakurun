@@ -54,7 +54,7 @@ export class Service {
         }
 
         try {
-            return (await fsPromises.stat(Service.getLogoDataPath(networkId, serviceId, logoId))).mtimeMs;
+            return (await stat(Service.getLogoDataPath(networkId, serviceId, logoId))).mtimeMs;
         } catch (e) {
             return 0;
         }
@@ -362,7 +362,7 @@ export class Service {
             key: `Service.Add.Check.${channel.type}.${channel.channel}.${serviceId}`,
             name: `Service Add Check ${channel.type}/${channel.channel}/${serviceId}`,
             fn: () => this._checkToAdd(channel, serviceId),
-            readyFn: () => _.tuner.readyForJob(channel),
+            readyFn: () => _.tuner.readyForJob([channel]),
             retryOnFail: true,
             retryMax: (1000 * 60 * 60 * 12) / (1000 * 60 * 3), // (12時間 / retryDelay) = 12時間～
             retryDelay: 1000 * 60 * 3
@@ -374,7 +374,7 @@ export class Service {
             key: `Service.Add.Scan.${channel.type}.${channel.channel}`,
             name: `Service Add Scan ${channel.type}/${channel.channel}`,
             fn: async () => this._scan(channel, true),
-            readyFn: () => _.tuner.readyForJob(channel),
+            readyFn: () => _.tuner.readyForJob([channel]),
             retryOnFail: true,
             retryMax: (1000 * 60 * 60 * 12) / (1000 * 60 * 3), // (12時間 / retryDelay) = 12時間～
             retryDelay: 1000 * 60 * 3
@@ -386,7 +386,7 @@ export class Service {
             key: `Service.Update.Scan.${channel.type}.${channel.channel}`,
             name: `Service Update Scan ${channel.type}/${channel.channel}`,
             fn: async () => this._scan(channel, false),
-            readyFn: () => _.tuner.readyForJob(channel)
+            readyFn: () => _.tuner.readyForJob([channel])
         });
     }
 
@@ -395,7 +395,7 @@ export class Service {
 
         let services: Awaited<ReturnType<typeof _.tuner.getServices>>;
         try {
-            services = await _.tuner.getServices(channel);
+            services = await _.tuner.getServices([channel]);
         } catch (e) {
             log.warn("ChannelItem#'%s' serviceId=%d check has failed [%s]", channel.name, serviceId, e);
             throw new Error("Service check failed");
@@ -424,7 +424,7 @@ export class Service {
 
         let services: Awaited<ReturnType<typeof _.tuner.getServices>>;
         try {
-            services = await _.tuner.getServices(channel);
+            services = await _.tuner.getServices([channel]);
         } catch (e) {
             log.warn("ChannelItem#'%s' service scan has failed [%s]", channel.name, e);
             throw new Error("Service scan failed");

@@ -658,26 +658,9 @@ definitions:
       $ref: '#/definitions/ConfigChannelsItem'
 
   ConfigChannelsItem:
-    type: object
-    required:
-      - name
-      - type
-      - channel
-    properties:
-      name:
-        type: string
-      type:
-        $ref: '#/definitions/ChannelType'
-      channel:
-        type: string
-      serviceId:
-        $ref: '#/definitions/ServiceId'
-      tsmfRelTs:
-        type: integer
-      commandVars:
-        type: object
-      isDisabled:
-        type: boolean
+    type: array
+    items:
+      $ref: '#/definitions/ChannelItem'
 
   Version:
     type: object

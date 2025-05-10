@@ -315,10 +315,10 @@ export default class EPG {
                     }
                     state.component.version[eit.table_id] = eit.version_number;
 
-                        _.program.set(state.programId, {
-                            video: {
-                                type: <apid.ProgramVideoType> STREAM_CONTENT[d.stream_content] || null,
-                                resolution: <apid.ProgramVideoResolution> COMPONENT_TYPE[d.component_type] || null,
+                    _.program.set(state.programId, {
+                        video: {
+                            type: <apid.ProgramVideoType> STREAM_CONTENT[d.stream_content] || null,
+                            resolution: <apid.ProgramVideoResolution> COMPONENT_TYPE[d.component_type] || null,
 
                             streamContent: d.stream_content,
                             componentType: d.component_type
