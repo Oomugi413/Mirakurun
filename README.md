@@ -40,14 +40,13 @@ A Japanese digital TV tuner API server specifically designed for "Air" (code nam
       ```
   1. ビルド
       ```powershell
-      npm install -g yarn
-      yarn install
-      yarn build
+      npm install
+      npm run build
       ```
   2. 起動
     管理者権限でターミナルを起動して以下のコマンドを実行
       ```powershell
-      yarn start.win32
+      npm run start.win32
       ```
 
   3. 管理画面の確認<br>
@@ -56,8 +55,8 @@ A Japanese digital TV tuner API server specifically designed for "Air" (code nam
   4. Windowsのサービス化<br>
       GUIからの再起動コマンドは現在動作しません。
       ```powershell
-      yarn install-win-service # インストール実行
-      yarn uninstall-win-service # アンインストール実行
+      npm run install-win-service # インストール実行
+      npm run uninstall-win-service # アンインストール実行
       ```
 
 ### 利用方法の例

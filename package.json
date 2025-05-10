@@ -137,7 +137,9 @@
     "type": "opencollective",
     "url": "https://opencollective.com/Mirakurun"
   },
-  "resolutions": {
-    "express-openapi/**/glob": "^7.0.0"
+  "overrides": {
+    "express-openapi": {
+      "glob": "^7.0.0"
+    }
   }
 }
