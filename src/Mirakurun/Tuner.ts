@@ -57,8 +57,8 @@ export class Tuner {
          * {type: GR, channel: 0}{type: NW1, channel: 17}
          * ループを回し、GR側が利用中や利用不可の時にNW1側のチューナーを利用する
          */
-        const devices = []; // チューナーデバイスを格納
-        const channels = []; // チャンネル情報を格納
+        const devices: TunerDevice[] = []; // チューナーデバイスを格納
+        const channels: ChannelItem[] = []; // チャンネル情報を格納
 
         for (const ch of channel) {
             const device = this._getDevicesByType(ch.type);
@@ -70,18 +70,18 @@ export class Tuner {
         }
 
         if (devices.length === 0) {
-            log.error("readyForJob: no tuners for channel type: %s", channel);
+            log.error("readyForJob: no tuners for channel type: %s", channels);
             return false;
         }
 
         while (true) {
             const pickableDevices = devices.filter(device => !this._readyForJobPickedDeviceSet.has(device));
             if (pickableDevices.length === 0) {
-                log.debug("readyForJob: no pickable tuners for channel type: %s", channel);
+                log.debug("readyForJob: no pickable tuners for channel type: %s", channels);
                 await common.sleep(1000 * 10);
                 continue;
             }
-            const device = this._pickTunerDevice(pickableDevices, channel, -1);
+            const device = this._pickTunerDevice(pickableDevices, channels, -1);
             if (device === null) {
                 // log.debug("readyForJob: no available tuners for channel type: %s", channel.type);
                 await common.sleep(1000 * 10);
