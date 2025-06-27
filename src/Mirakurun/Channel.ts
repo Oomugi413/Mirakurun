@@ -239,7 +239,8 @@ export class Channel {
                     }
                 }
             });
-        
+        }
+ 
         const channels = _.config.channels;
         channels.forEach((channel, i) => {
             if (channel.type !== "BS4K") {
