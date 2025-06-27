@@ -33,6 +33,7 @@ interface ChannelScanOption {
     setDisabledOnAdd?: boolean;        // Set disabled flag on newly added channels
     refresh?: boolean;                 // Refresh existing channel configs
     channelNameFormat?: string;        // Custom channel name format
+    useNIT?: boolean;
 }
 
 /**
@@ -71,7 +72,8 @@ const channelOrder: Record<apid.ChannelType, number> = {
     GR: 1,
     BS: 2,
     CS: 3,
-    SKY: 4
+    SKY: 4,
+    BS4K: 5
 };
 
 /**
@@ -181,7 +183,8 @@ export function generateScanConfig(option: ChannelScanOption): ScanConfig | unde
             channels: range(grOptions.startCh, grOptions.endCh)
                 .map(ch => formatChannelName(channelFormat, ch)),
             scanMode: grOptions.scanMode,
-            setDisabledOnAdd: grOptions.setDisabledOnAdd
+            setDisabledOnAdd: grOptions.setDisabledOnAdd,
+            useNIT: option.useNIT
         };
     }
 
@@ -192,6 +195,30 @@ export function generateScanConfig(option: ChannelScanOption): ScanConfig | unde
         ...option
     };
 
+    if (option.type === "BS4K") {
+        return {
+            channels: ["45328"], // default TLV
+            scanMode: option.scanMode,
+            setDisabledOnAdd: option.setDisabledOnAdd,
+            useNIT: option.useNIT
+        };
+    }
+    if (option.useNIT && option.type === "BS") {
+        return {
+            channels: ["16625"], // default TS
+            scanMode: option.scanMode,
+            setDisabledOnAdd: option.setDisabledOnAdd,
+            useNIT: option.useNIT
+        };
+    }
+    if (option.useNIT && option.type === "CS") {
+        return {
+            channels: ["24608", "28736"], // default TS
+            scanMode: option.scanMode,
+            setDisabledOnAdd: option.setDisabledOnAdd,
+            useNIT: option.useNIT
+        };
+    }
     // Handle BS (Broadcast Satellite) channels
     if (option.type === "BS") {
         // Handle subchannel style BS scanning (e.g. BS01_0)
@@ -217,7 +244,8 @@ export function generateScanConfig(option: ChannelScanOption): ScanConfig | unde
             return {
                 channels,
                 scanMode: bsSubchOptions.scanMode,
-                setDisabledOnAdd: bsSubchOptions.setDisabledOnAdd
+                setDisabledOnAdd: bsSubchOptions.setDisabledOnAdd,
+                useNIT: option.useNIT
             };
         }
 
@@ -233,7 +261,8 @@ export function generateScanConfig(option: ChannelScanOption): ScanConfig | unde
             channels: range(bsOptions.startCh, bsOptions.endCh)
                 .map(ch => formatChannelName(channelFormat, ch)),
             scanMode: bsOptions.scanMode,
-            setDisabledOnAdd: bsOptions.setDisabledOnAdd
+            setDisabledOnAdd: bsOptions.setDisabledOnAdd,
+            useNIT: option.useNIT
         };
     }
 
@@ -250,7 +279,8 @@ export function generateScanConfig(option: ChannelScanOption): ScanConfig | unde
             channels: range(csOptions.startCh, csOptions.endCh)
                 .map(ch => formatChannelName(channelFormat, ch)),
             scanMode: csOptions.scanMode,
-            setDisabledOnAdd: csOptions.setDisabledOnAdd
+            setDisabledOnAdd: csOptions.setDisabledOnAdd,
+            useNIT: option.useNIT
         };
     }
 
@@ -358,7 +388,8 @@ export function generateChannelItems(
     type: apid.ChannelType,
     channel: string,
     services: apid.Service[],
-    setDisabledOnAdd: boolean
+    setDisabledOnAdd: boolean,
+    useNIT: boolean
 ): apid.ConfigChannels {
     // Service mode: create one channel item per service
     if (scanMode === "Service") {
@@ -430,6 +461,7 @@ async function runChannelScan(
     dryRun: boolean,
     type: apid.ChannelType,
     refresh: boolean,
+    useNIT: boolean,
     outputWriter?: (text: string) => void,
     skipCh: number[] = []
 ): Promise<apid.ConfigChannels> {
@@ -527,6 +559,7 @@ async function runChannelScan(
             appendToLog("-- dry run --\n\n");
         }
 
+
         // Print scan start message
         updateStepStatus(
             { status: "started" as const, type },
@@ -614,18 +647,20 @@ async function runChannelScan(
                     continue; // Skip to next channel
                 }
             }
-
             // Scan the channel for services
             let services: apid.Service[];
+            let channels: apid.Channel[];
             try {
                 // Get services from the tuner
-                services = await _.tuner.getServices(<any> {
+                const r = await _.tuner.getServices(<any> {
                     type,
                     channel
                 }, {
                     id: "Mirakurun:API:channelScan",
                     priority: 1
                 });
+                services = r.services;
+                channels = r.channels;
             } catch (error) {
                 // Handle errors (often no signal)
                 const isNoSignalError = /stream has closed before get network/.test(String(error));
@@ -645,7 +680,22 @@ async function runChannelScan(
                 updateStepStatus(errorInfo, errorText);
                 continue; // Skip to next channel
             }
-
+            if (scanConfig.useNIT) {
+                res.write(`-> ${channels.length} streams found.\n`);
+                for (const c of channels) {
+                    if (result.some(x => x.channel === c.channel)) {
+                        continue;
+                    }
+                    res.write(`-> ${JSON.stringify(c)}\n`);
+                    result.push({
+                        name: c.channel,
+                        type,
+                        channel: c.channel,
+                    });
+                    ++newCount;
+                }
+                continue;
+            }
             // Filter services
             services = services.filter(service => serviceTypes.includes(service.type));
 
@@ -670,7 +720,8 @@ async function runChannelScan(
                 type,
                 channel,
                 services,
-                scanConfig.setDisabledOnAdd
+                scanConfig.setDisabledOnAdd,
+                scanConfig.useNIT
             );
 
             // Add newly scanned items to results
@@ -811,6 +862,7 @@ export const put: Operation = async (req, res) => {
     const dryRun = Boolean(req.query.dryRun);
     const type = req.query.type as apid.ChannelType;
     const refresh = Boolean(req.query.refresh);
+    const useNIT = type === "BS4K" ? !!_.config.server.useStreamId : (type === "BS" || type === "CS" ? !!_.config.server.useTSId : false);
 
     // Parse skipCh parameter
     const skipCh: number[] = req.query?.skipCh as any as number[] || [];
@@ -825,6 +877,7 @@ export const put: Operation = async (req, res) => {
         useSubCh: req.query.useSubCh !== undefined ? Boolean(req.query.useSubCh) : undefined,
         channelNameFormat: req.query.channelNameFormat as string,
         scanMode: req.query.scanMode as apid.ChannelScanMode,
+        useNIT,
         setDisabledOnAdd: req.query.setDisabledOnAdd !== undefined ?
             Boolean(req.query.setDisabledOnAdd) : undefined
     };
@@ -850,7 +903,7 @@ export const put: Operation = async (req, res) => {
         res.end();
 
         // Run scan in background
-        runChannelScan(scanConfig, dryRun, type, refresh, null, skipCh)
+        runChannelScan(scanConfig, dryRun, type, refresh, useNIT, null, skipCh)
             .catch(error => {
                 console.error("Channel scan error:", error);
                 // Error is used only when the scan is stopped
@@ -876,7 +929,7 @@ export const put: Operation = async (req, res) => {
         };
 
         // Run scan with output streaming
-        await runChannelScan(scanConfig, dryRun, type, refresh, logTextOutput, skipCh);
+        await runChannelScan(scanConfig, dryRun, type, refresh, useNIT, logTextOutput, skipCh);
         res.end();
     } catch (error) {
         console.error("Channel scan error:", error);
@@ -926,7 +979,7 @@ About BS Subchannel Style:
             in: "query",
             name: "type",
             type: "string",
-            enum: ["GR", "BS", "CS"] as apid.ChannelType[],
+            enum: ["GR", "BS", "CS", "BS4K"] as apid.ChannelType[],
             default: "GR",
             description: "Specifies the channel type to scan."
         },

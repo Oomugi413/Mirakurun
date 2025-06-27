@@ -96,7 +96,7 @@ export class Channel {
                 return;
             }
 
-            if (channel.type !== "GR" && channel.type !== "BS" && channel.type !== "CS" && channel.type !== "SKY") {
+            if (channel.type !== "GR" && channel.type !== "BS" && channel.type !== "CS" && channel.type !== "SKY" && channel.type !== "BS4K") {
                 log.error("invalid type of property `type` in channel#%d (%s) configuration", i, channel.name);
                 return;
             }
@@ -184,6 +184,9 @@ export class Channel {
         const networkIds = [...new Set(_.service.items.map(item => item.networkId))];
 
         for (const networkId of networkIds) {
+            if (networkId === 0xB || networkId === 0xC) {
+                return;
+            }
             const services = _.service.findByNetworkId(networkId);
             if (services.length === 0) {
                 continue;
@@ -232,12 +235,58 @@ export class Channel {
                                 service.epgReady = false;
                             }
                         }
+                        return _.tuner.readyForJob(service.channel);
                     }
-
-                    return _.tuner.readyForJob(service.channel);
                 }
             });
-        }
+        
+        const channels = _.config.channels;
+        channels.forEach((channel, i) => {
+            if (channel.type !== "BS4K") {
+                return;
+            }
+            const services = channel.getServices();
+
+            if (services.length === 0) {
+                continue;
+            }
+            const service = services[0];
+            _.job.add({
+                key: `MHEPG.Gather.NID.${channel.name}`,
+                name: `MHEPG Gather Network#${channel.name}`,
+                isRerunnable: true,
+                fn: async () => {
+                    log.info("Network#%d EPG gathering has started", channel.name);
+                    try {
+                        await _.tuner.getEPG(service.channel);
+                        log.info("Network#%d EPG gathering has finished", channel.name);
+                    } catch (e) {
+                        log.warn("Network#%d EPG gathering has failed [%s]", channel.name, e);
+                        throw new Error("EPG gathering failed");
+                    }
+                },
+                readyFn: async () => {
+                    await common.sleep(100);
+
+                    if (status.epg[channel.channel] === true) {
+                        log.info("Network#%d EPG gathering is already in progress on another stream", channel.name);
+                        return false;
+                    }
+                    if (service.epgReady === true) {
+                        const now = Date.now();
+                        if (startup && now - service.epgUpdatedAt < 1000 * 60 * 10) { // 10 mins
+                            log.info("Network#%d EPG gathering has skipped because EPG is already up to date (in 10 mins)", channel.name);
+                            return false;
+                        }
+                        if (now - service.epgUpdatedAt > 1000 * 60 * 60 * 12) { // 12 hours
+                            log.info("Network#%d EPG gathering is resuming forcibly because reached maximum pause time (12 hours)", channel.name);
+                            service.epgReady = false;
+                        }
+                        return _.tuner.readyForJob(service.channel);
+                    }
+                }
+            });
+        });
     }
 }
 
