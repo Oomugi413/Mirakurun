@@ -242,7 +242,7 @@ export class Channel {
         }
 
         const channels = _.config.channels;
-        channels.forEach((channel, i) => {
+        for (const channel of channels) {
             if (channel.type !== "BS4K") {
                 return;
             }
@@ -251,6 +251,7 @@ export class Channel {
                 continue;
             }
             const service = services[0];
+
             _.job.add({
                 key: `MHEPG.Gather.NID.${channel.name}`,
                 name: `MHEPG Gather Network#${channel.name}`,
@@ -286,7 +287,7 @@ export class Channel {
                     }
                 }
             });
-        });
+        }
     }
 }
 
