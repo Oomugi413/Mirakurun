@@ -43,6 +43,7 @@ interface ScanConfig {
     readonly channels: string[];         // List of channel identifiers to scan
     readonly scanMode: apid.ChannelScanMode;         // Scan mode to use
     readonly setDisabledOnAdd: boolean;  // Whether to set disabled on new channels
+    readonly useNIT: boolean;  
 }
 
 /**
@@ -678,22 +679,6 @@ async function runChannelScan(
 
                 updateStepStatus(errorInfo, errorText);
                 continue; // Skip to next channel
-            }
-            if (scanConfig.useNIT) {
-                res.write(`-> ${channels.length} streams found.\n`);
-                for (const c of channels) {
-                    if (result.some(x => x.channel === c.channel)) {
-                        continue;
-                    }
-                    res.write(`-> ${JSON.stringify(c)}\n`);
-                    result.push({
-                        name: c.channel,
-                        type,
-                        channel: c.channel
-                    });
-                    ++newCount;
-                }
-                continue;
             }
             // Filter services
             services = services.filter(service => serviceTypes.includes(service.type));
