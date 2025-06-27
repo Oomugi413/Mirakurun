@@ -425,7 +425,6 @@ export class Tuner {
         return false;
     }
 
-
     /**
      * チューナーデバイス探索
      */
@@ -453,7 +452,7 @@ export class Tuner {
             if (device.isAvailable === true && device.users.length === 0) {
                 return device;
             }
-        } 
+        }
 
         // 4. takeover existing
         if (priority >= 0) {
