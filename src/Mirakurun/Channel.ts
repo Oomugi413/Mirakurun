@@ -246,8 +246,7 @@ export class Channel {
             if (channel.type !== "BS4K") {
                 return;
             }
-            const services = channel.getServices();
-
+            const services = _.service.findByChannel(channel);
             if (services.length === 0) {
                 continue;
             }
