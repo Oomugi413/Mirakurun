@@ -19,6 +19,7 @@ import { stat, mkdir, readFile, writeFile } from "fs/promises";
 import { sleep } from "./common";
 import * as log from "./log";
 import * as db from "./db";
+import * as apid from "../../api";
 import _ from "./_";
 import Event from "./Event";
 import ChannelItem from "./ChannelItem";
@@ -395,9 +396,15 @@ export class Service {
     private async _scan(channel: ChannelItem, add: boolean): Promise<void> {
         log.info("ChannelItem#'%s' service scan has started", channel.name);
 
-        let services: Awaited<ReturnType<typeof _.tuner.getServices>>;
+        let services: apid.Service[];
+        let channels: apid.Channel[];
         try {
-            services = await _.tuner.getServices(channel);
+            // Get services from the tuner
+            const r = await _.tuner.getServices(<any> {
+                channel
+            });
+            services = r.services;
+            channels = r.channels;
         } catch (e) {
             log.warn("ChannelItem#'%s' service scan has failed [%s]", channel.name, e);
             throw new Error("Service scan failed");
