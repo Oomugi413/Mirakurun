@@ -559,7 +559,6 @@ async function runChannelScan(
             appendToLog("-- dry run --\n\n");
         }
 
-
         // Print scan start message
         updateStepStatus(
             { status: "started" as const, type },
@@ -690,7 +689,7 @@ async function runChannelScan(
                     result.push({
                         name: c.channel,
                         type,
-                        channel: c.channel,
+                        channel: c.channel
                     });
                     ++newCount;
                 }
