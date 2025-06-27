@@ -131,7 +131,8 @@ const textDecoder = new TextDecoder();
 
 export function decodeUTF8(buffer: Uint8Array) {
     return textDecoder.decode(buffer, { stream: false });
-  
+}
+
 export function replaceCommandTemplate(template: string, vars: Record<string, string | number>): string {
     return template.replace(/<([a-z0-9\-_\.]+)>/gi, (match, key) => {
         return vars[key] !== undefined ? String(vars[key]) : "";
