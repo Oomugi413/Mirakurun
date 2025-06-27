@@ -43,7 +43,7 @@ interface ScanConfig {
     readonly channels: string[];         // List of channel identifiers to scan
     readonly scanMode: apid.ChannelScanMode;         // Scan mode to use
     readonly setDisabledOnAdd: boolean;  // Whether to set disabled on new channels
-    readonly useNIT: boolean;  
+    readonly useNIT: boolean;
 }
 
 /**
