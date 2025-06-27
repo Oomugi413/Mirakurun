@@ -127,7 +127,7 @@ export class Tuner {
         }, output);
     }
 
-    initProgramStream(program: db.Program, userReq: common.UserRequest, output: Writable): Promise<StreamFilter> {
+    initProgramStream(program: apid.Program, userReq: common.UserRequest, output: Writable): Promise<StreamFilter> {
         return this._initTS({
             ...userReq,
             streamSetting: {
@@ -203,7 +203,7 @@ export class Tuner {
                 remoteControlKeyId: -1
             };
             let services: apid.Service[] = null;
-            let networkStreams: db.Channel[] = [];
+            let networkStreams: apid.Channel[] = [];
 
             setTimeout(() => tsFilter.close(), 20000);
 
