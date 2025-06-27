@@ -246,7 +246,7 @@ export class Channel {
             if (channel.type !== "BS4K") {
                 return;
             }
-            const services = _.service.findByChannel(apid.ConfigChannelsItem);
+            const services = _.service.findByChannel(ChannelItem.constructor(channel));
             if (services.length === 0) {
                 continue;
             }
