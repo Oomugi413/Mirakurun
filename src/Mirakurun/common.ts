@@ -48,6 +48,16 @@ export interface StreamInfo {
 
 export const channelTypes: apid.ChannelType[] = ["GR", "BS", "CS", "SKY", "BS4K"];
 
+export enum ChannelTypesOLD {
+    "GR" = "GR",
+    "BS" = "BS",
+    "CS" = "CS",
+    "SKY" = "SKY",
+    "BS4K" = "BS4K"
+}
+
+export type ChannelTypeOLD = keyof typeof ChannelTypesOLD;
+
 export const deepClone = rfdc();
 
 export function updateObject<T, U>(target: T, input: U): boolean;
