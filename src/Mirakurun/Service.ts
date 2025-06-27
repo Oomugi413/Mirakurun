@@ -360,10 +360,15 @@ export class Service {
 
     private async _checkToAdd(channel: ChannelItem, serviceId: number): Promise<void> {
         log.info("ChannelItem#'%s' serviceId=%d check has started", channel.name, serviceId);
-
-        let services: Awaited<ReturnType<typeof _.tuner.getServices>>;
+        let services: apid.Service[];
+        let channels: apid.Channel[];
         try {
-            services = await _.tuner.getServices(channel);
+            // Get services from the tuner
+            const r = await _.tuner.getServices(<any> {
+                channel
+            });
+            services = r.services;
+            channels = r.channels;
         } catch (e) {
             log.warn("ChannelItem#'%s' serviceId=%d check has failed [%s]", channel.name, serviceId, e);
             throw new Error("Service check failed");
