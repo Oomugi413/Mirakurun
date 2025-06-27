@@ -1,7 +1,7 @@
 swagger: '2.0'
 info:
   title: Mirakurun
-  version: ~
+  version: '0.0.0'
   description: DVR Tuner Server for Japanese TV.
   contact:
     name: Chinachu Project
@@ -76,17 +76,6 @@ definitions:
         type: string
       name:
         type: string
-      satellite:
-        type: string
-      space:
-        type: integer
-      freq:
-        type: number
-      polarity:
-        type: string
-        enum:
-          - H
-          - V
       tsmfRelTs:
         type: integer
       services:
@@ -418,6 +407,88 @@ definitions:
       pid:
         type: integer
 
+  # job -----------------------------------------------------------------------
+
+  JobScheduleItem:
+    type: object
+    required:
+      - key
+      - schedule
+      - job
+    properties:
+      key:
+        type: string
+      schedule:
+        type: string
+      job:
+        type: object
+        required:
+          - key
+          - name
+        properties:
+          key:
+            type: string
+          name:
+            type: string
+
+  JobItem:
+    type: object
+    required:
+      - key
+      - name
+      - id
+      - status
+      - retryCount
+      - isAborting
+      - createdAt
+      - updatedAt
+    properties:
+      key:
+        type: string
+      name:
+        type: string
+      id:
+        type: string
+      status:
+        type: string
+        enum:
+          - queued
+          - standby
+          - running
+          - finished
+      retryCount:
+        type: integer
+      isRerunnable:
+        type: boolean
+      retryOnAbort:
+        type: boolean
+      retryOnFail:
+        type: boolean
+      retryMax:
+        type: integer
+      retryDelay:
+        type: integer
+      isAborting:
+        type: boolean
+      hasAborted:
+        type: boolean
+      hasSkipped:
+        type: boolean
+      hasFailed:
+        type: boolean
+      error:
+        type: string
+      createdAt:
+        $ref: '#/definitions/UnixtimeMS'
+      updatedAt:
+        $ref: '#/definitions/UnixtimeMS'
+      startedAt:
+        $ref: '#/definitions/UnixtimeMS'
+      finishedAt:
+        $ref: '#/definitions/UnixtimeMS'
+      duration:
+        type: integer
+
   # event ---------------------------------------------------------------------
 
   Event:
@@ -473,15 +544,23 @@ definitions:
       maxLogHistory:
         type: integer
         minimum: 0
+      jobMaxRunning:
+        type: integer
+        minimum: 1
+        maximum: 100
+      jobMaxStandby:
+        type: integer
+        minimum: 1
+        maximum: 100
       maxBufferBytesBeforeReady:
         type: integer
       eventEndTimeout:
         type: integer
         minimum: 0
-      programGCInterval:
-        type: integer
-      epgGatheringInterval:
-        type: integer
+      programGCJobSchedule:
+        type: string
+      epgGatheringJobSchedule:
+        type: string
       epgRetrievalTime:
         type: integer
       logoDataInterval:
@@ -557,17 +636,10 @@ definitions:
         type: string
       serviceId:
         $ref: '#/definitions/ServiceId'
-      satellite:
-        type: string
-      space:
+      tsmfRelTs:
         type: integer
-      freq:
-        type: number
-      polarity:
-        type: string
-        enum:
-          - H
-          - V
+      commandVars:
+        type: object
       isDisabled:
         type: boolean
 
@@ -578,6 +650,55 @@ definitions:
         type: string
       latest:
         type: string
+
+  ChannelScanStatus:
+    type: object
+    description: "Current status of a channel scan operation"
+    properties:
+      status:
+        type: string
+        description: "Current scan status"
+        enum:
+          - not_started
+          - scanning
+          - completed
+          - cancelled
+          - error
+      isScanning:
+        type: boolean
+        description: "Whether a scan is currently in progress"
+      type:
+        $ref: '#/definitions/ChannelType'
+        description: "Channel type being scanned"
+      dryRun:
+        type: boolean
+        description: "Whether this is a dry run (no changes will be saved)"
+      progress:
+        type: integer
+        description: "Scan progress percentage (0-100)"
+      currentChannel:
+        type: string
+        description: "Channel currently being scanned"
+      scanLog:
+        type: array
+        description: "Log of scan events"
+        items:
+          type: string
+      newCount:
+        type: integer
+        description: "Number of new channels found"
+      takeoverCount:
+        type: integer
+        description: "Number of existing channels merged"
+      result:
+        type: array
+        description: "Complete channel configuration"
+        items:
+          $ref: "#/definitions/ConfigChannelsItem"
+      startTime:
+        $ref: '#/definitions/UnixtimeMS'
+      updateTime:
+        $ref: '#/definitions/UnixtimeMS'
 
   Status:
     type: object

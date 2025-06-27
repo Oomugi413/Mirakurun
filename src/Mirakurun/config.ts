@@ -16,11 +16,14 @@
 import { execSync } from "child_process";
 import { dirname } from "path";
 import { hostname } from "os";
-import * as fs from "fs";
+import { existsSync, readdirSync } from "fs";
+import { mkdir, copyFile, readFile, writeFile } from "fs/promises";
 import * as yaml from "js-yaml";
 import * as ipnum from "ip-num";
-import * as common from "./common";
+import Queue from "promise-queue";
+import * as apid from "../../api";
 import * as log from "./log";
+import { isValidCronExpression } from "./Job";
 
 type Writable<T> = { -readonly [K in keyof T]: T[K] };
 
@@ -33,111 +36,39 @@ const {
     HOSTNAME,
     LOG_LEVEL,
     MAX_LOG_HISTORY,
+    JOB_MAX_RUNNING,
+    JOB_MAX_STANDBY,
     MAX_BUFFER_BYTES_BEFORE_READY,
     EVENT_END_TIMEOUT,
-    PROGRAM_GC_INTERVAL,
-    EPG_GATHERING_INTERVAL,
+    PROGRAM_GC_JOB_SCHEDULE,
+    EPG_GATHERING_JOB_SCHEDULE,
     EPG_RETRIEVAL_TIME,
     LOGO_DATA_INTERVAL,
     DISABLE_EIT_PARSING,
     DISABLE_WEB_UI,
     ALLOW_IPV4_CIDR_RANGES,
-    ALLOW_IPV6_CIDR_RANGES
+    ALLOW_IPV6_CIDR_RANGES,
+    ALLOW_ORIGINS,
+    ALLOW_PNA,
+    TSPLAY_ENDPOINT
 } = process.env;
 
 const IS_DOCKER = DOCKER === "YES";
 
-export interface Server {
-    // as Local Server
-    readonly path?: string;
+type Server = Readonly<apid.ConfigServer>;
+type Tuner = Readonly<apid.ConfigTunersItem>;
+type Channel = Readonly<apid.ConfigChannelsItem>;
 
-    // as Remote Server
-    readonly port?: number;
-
-    // hostname
-    readonly hostname?: string;
-
-    /** `true` to disable IPv6 listening */
-    readonly disableIPv6?: boolean;
-
-    readonly logLevel?: log.LogLevel;
-    readonly maxLogHistory?: number;
-
-    readonly maxBufferBytesBeforeReady?: number;
-    readonly eventEndTimeout?: number;
-
-    readonly programGCInterval?: number;
-    readonly epgGatheringInterval?: number;
-    readonly epgRetrievalTime?: number;
-    readonly logoDataInterval?: number;
-    readonly disableEITParsing?: true;
-    readonly disableWebUI?: true;
-    readonly allowIPv4CidrRanges?: string[];
-    readonly allowIPv6CidrRanges?: string[];
-    readonly useTSId?: boolean;
-    readonly useStreamId?: boolean;
-}
-
-export interface Tuner {
-    readonly name: string;
-
-    // GR / BS / CS / SKY / BS4K
-    readonly types: common.ChannelType[];
-
-    // for chardev / dvb
-    readonly command?: string;
-
-    // for dvb
-    readonly dvbDevicePath?: string;
-
-    // for multiplexing w/ remote Mirakurun
-    readonly remoteMirakurunHost?: string;
-    readonly remoteMirakurunPort?: number;
-    readonly remoteMirakurunDecoder?: boolean;
-
-    // decoder
-    readonly decoder?: string;
-    readonly tlvDecoder?: string;
-
-    readonly isDisabled?: boolean;
-}
-
-export interface Channel {
-    readonly name: string;
-
-    // GR / BS / CS / SKY / BS4K
-    readonly type: common.ChannelType;
-
-    // passed to tuning command
-    readonly channel: string;
-    readonly satellite?: string;
-    readonly space?: number;
-    readonly freq?: number;
-    readonly polarity?: "H" | "V";
-
-    // tsmf
-    readonly tsmfRelTs?: number;
-
-    // service id
-    readonly serviceId?: number;
-
-    readonly isDisabled?: boolean;
-
-    /** @deprecated */
-    readonly satelite?: string;
-}
-
-export function loadServer(): Server {
-
+export async function loadServer(): Promise<Server> {
     const path = SERVER_CONFIG_PATH;
 
     // mkdir if not exists
     const dirPath = dirname(path);
-    if (fs.existsSync(dirPath) === false) {
+    if (existsSync(dirPath) === false) {
         log.info("missing directory `%s`", dirPath);
         try {
             log.info("making directory `%s`", dirPath);
-            fs.mkdirSync(dirPath, { recursive: true });
+            await mkdir(dirPath, { recursive: true });
         } catch (e) {
             log.fatal("failed to make directory `%s`", dirPath);
             console.error(e);
@@ -146,23 +77,19 @@ export function loadServer(): Server {
     }
 
     // copy if not exists
-    if (fs.existsSync(path) === false) {
+    if (existsSync(path) === false) {
         log.info("missing server config `%s`", path);
         // copy if not exists
         try {
             log.info("copying default server config to `%s`", path);
-            if (process.platform === "win32") {
-                fs.copyFileSync("config/server.win32.yml", path);
-            } else {
-                fs.copyFileSync("config/server.yml", path);
-            }
+            await copyFile("config/server.yml", path);
         } catch (e) {
             log.fatal("failed to copy server config to `%s`", path);
             console.error(e);
             process.exit(1);
         }
     }
-    const config: Writable<Server> = load("server", path);
+    const config: Writable<Server> = await load("server", path);
 
     // set default
     if (!config.allowIPv4CidrRanges) {
@@ -170,6 +97,17 @@ export function loadServer(): Server {
     }
     if (!config.allowIPv6CidrRanges) {
         config.allowIPv6CidrRanges = ["fc00::/7"];
+    }
+    if (!config.allowOrigins) {
+        config.allowOrigins = [
+            "https://mirakurun-secure-contexts-api.pages.dev"
+        ];
+    }
+    if (!config.allowPNA) {
+        config.allowPNA = true;
+    }
+    if (!config.tsplayEndpoint) {
+        config.tsplayEndpoint = "https://mirakurun-secure-contexts-api.pages.dev/tsplay/";
     }
 
     if (typeof config.useTSId !== "boolean") {
@@ -191,10 +129,16 @@ export function loadServer(): Server {
             config.hostname = HOSTNAME.trim();
         }
         if (typeof LOG_LEVEL !== "undefined" && /^-?[0123]$/.test(LOG_LEVEL)) {
-            config.logLevel = parseInt(LOG_LEVEL, 10);
+            config.logLevel = parseInt(LOG_LEVEL, 10) as apid.LogLevel;
         }
         if (typeof MAX_LOG_HISTORY !== "undefined" && /^[0-9]+$/.test(MAX_LOG_HISTORY)) {
             config.maxLogHistory = parseInt(MAX_LOG_HISTORY, 10);
+        }
+        if (typeof JOB_MAX_RUNNING !== "undefined" && /^[0-9]+$/.test(JOB_MAX_RUNNING)) {
+            config.jobMaxRunning = parseInt(JOB_MAX_RUNNING, 10);
+        }
+        if (typeof JOB_MAX_STANDBY !== "undefined" && /^[0-9]+$/.test(JOB_MAX_STANDBY)) {
+            config.jobMaxStandby = parseInt(JOB_MAX_STANDBY, 10);
         }
         if (typeof MAX_BUFFER_BYTES_BEFORE_READY !== "undefined" && /^[0-9]+$/.test(MAX_BUFFER_BYTES_BEFORE_READY)) {
             config.maxBufferBytesBeforeReady = parseInt(MAX_BUFFER_BYTES_BEFORE_READY, 10);
@@ -202,11 +146,11 @@ export function loadServer(): Server {
         if (typeof EVENT_END_TIMEOUT !== "undefined" && /^[0-9]+$/.test(EVENT_END_TIMEOUT)) {
             config.eventEndTimeout = parseInt(EVENT_END_TIMEOUT, 10);
         }
-        if (typeof PROGRAM_GC_INTERVAL !== "undefined" && /^[0-9]+$/.test(PROGRAM_GC_INTERVAL)) {
-            config.programGCInterval = parseInt(PROGRAM_GC_INTERVAL, 10);
+        if (typeof PROGRAM_GC_JOB_SCHEDULE !== "undefined" && isValidCronExpression(PROGRAM_GC_JOB_SCHEDULE)) {
+            config.programGCJobSchedule = PROGRAM_GC_JOB_SCHEDULE;
         }
-        if (typeof EPG_GATHERING_INTERVAL !== "undefined" && /^[0-9]+$/.test(EPG_GATHERING_INTERVAL)) {
-            config.epgGatheringInterval = parseInt(EPG_GATHERING_INTERVAL, 10);
+        if (typeof EPG_GATHERING_JOB_SCHEDULE !== "undefined" && isValidCronExpression(EPG_GATHERING_JOB_SCHEDULE)) {
+            config.epgGatheringJobSchedule = EPG_GATHERING_JOB_SCHEDULE;
         }
         if (typeof EPG_RETRIEVAL_TIME !== "undefined" && /^[0-9]+$/.test(EPG_RETRIEVAL_TIME)) {
             config.epgRetrievalTime = parseInt(EPG_RETRIEVAL_TIME, 10);
@@ -226,6 +170,17 @@ export function loadServer(): Server {
         if (typeof ALLOW_IPV6_CIDR_RANGES !== "undefined" && ALLOW_IPV6_CIDR_RANGES.trim().length > 0) {
             config.allowIPv6CidrRanges = ALLOW_IPV6_CIDR_RANGES.split(",");
         }
+        if (typeof ALLOW_ORIGINS !== "undefined" && ALLOW_ORIGINS.trim().length > 0) {
+            config.allowOrigins = ALLOW_ORIGINS.split(",");
+        }
+        if (ALLOW_PNA === "true") {
+            config.allowPNA = true;
+        } else if (ALLOW_PNA === "false") {
+            config.allowPNA = false;
+        }
+        if (typeof TSPLAY_ENDPOINT !== "undefined" && TSPLAY_ENDPOINT.trim().length > 0) {
+            config.tsplayEndpoint = TSPLAY_ENDPOINT.trim();
+        }
 
         log.info("load server config (merged w/ env): %s", JSON.stringify(config));
     }
@@ -233,6 +188,22 @@ export function loadServer(): Server {
     if (!config.hostname) {
         config.hostname = hostname();
         log.info("detected hostname: %s", config.hostname);
+    }
+
+    // validate jobMaxRunning
+    if (typeof config.jobMaxRunning !== "undefined") {
+        if (typeof config.jobMaxRunning !== "number" || config.jobMaxRunning < 1 || config.jobMaxRunning > 100) {
+            log.error("invalid server config property `jobMaxRunning`: %s", config.jobMaxRunning);
+            delete config.jobMaxRunning;
+        }
+    }
+
+    // validate jobMaxStandby
+    if (typeof config.jobMaxStandby !== "undefined") {
+        if (typeof config.jobMaxStandby !== "number" || config.jobMaxStandby < 1 || config.jobMaxStandby > 100) {
+            log.error("invalid server config property `jobMaxStandby`: %s", config.jobMaxStandby);
+            delete config.jobMaxStandby;
+        }
     }
 
     // validate allowIPv4CidrRanges
@@ -278,17 +249,16 @@ export function saveServer(data: Server): Promise<void> {
     return save("server", SERVER_CONFIG_PATH, data);
 }
 
-export function loadTuners(): Tuner[] {
-
+export async function loadTuners(): Promise<Tuner[]> {
     const path = TUNERS_CONFIG_PATH;
 
     // mkdir if not exists
     const dirPath = dirname(path);
-    if (fs.existsSync(dirPath) === false) {
+    if (existsSync(dirPath) === false) {
         log.info("missing directory `%s`", dirPath);
         try {
             log.info("making directory `%s`", dirPath);
-            fs.mkdirSync(dirPath, { recursive: true });
+            await mkdir(dirPath, { recursive: true });
         } catch (e) {
             log.fatal("failed to make directory `%s`", dirPath);
             console.error(e);
@@ -297,7 +267,7 @@ export function loadTuners(): Tuner[] {
     }
 
     // auto
-    if (process.platform === "linux" && fs.existsSync(path) === false) {
+    if (existsSync(path) === false) {
         log.info("missing tuners config `%s`", path);
         log.info("trying to detect tuners...");
         const tuners: Tuner[] = [];
@@ -306,7 +276,7 @@ export function loadTuners(): Tuner[] {
         try {
             execSync("which dvb-fe-tool");
 
-            const adapters = fs.readdirSync("/dev/dvb").filter(name => /^adapter[0-9]+$/.test(name));
+            const adapters = readdirSync("/dev/dvb").filter(name => /^adapter[0-9]+$/.test(name));
             for (let i = 0; i < adapters.length; i++) {
                 log.info("detected DVB device: %s", adapters[i]);
 
@@ -350,7 +320,7 @@ export function loadTuners(): Tuner[] {
         if (tuners.length > 0) {
             try {
                 log.info("writing auto generated tuners config to `%s`", path);
-                fs.writeFileSync(path, yaml.dump(tuners));
+                await saveTuners(tuners);
             } catch (e) {
                 log.fatal("failed to write tuners config to `%s`", path);
                 console.error(e);
@@ -360,15 +330,11 @@ export function loadTuners(): Tuner[] {
     }
 
     // copy if not exists
-    if (fs.existsSync(path) === false) {
+    if (existsSync(path) === false) {
         log.info("missing tuners config `%s`", path);
         try {
             log.info("copying default tuners config to `%s`", path);
-            if (process.platform === "win32") {
-                fs.copyFileSync("config/tuners.win32.yml", path);
-            } else {
-                fs.copyFileSync("config/tuners.yml", path);
-            }
+            await copyFile("config/tuners.yml", path);
         } catch (e) {
             log.fatal("failed to copy tuners config to `%s`", path);
             console.error(e);
@@ -383,17 +349,16 @@ export function saveTuners(data: Tuner[]): Promise<void> {
     return save("tuners", TUNERS_CONFIG_PATH, data);
 }
 
-export function loadChannels(): Channel[] {
-
+export async function loadChannels(): Promise<Channel[]> {
     const path = CHANNELS_CONFIG_PATH;
 
     // mkdir if not exists
     const dirPath = dirname(path);
-    if (fs.existsSync(dirPath) === false) {
+    if (existsSync(dirPath) === false) {
         log.info("missing directory `%s`", dirPath);
         try {
             log.info("making directory `%s`", dirPath);
-            fs.mkdirSync(dirPath, { recursive: true });
+            await mkdir(dirPath, { recursive: true });
         } catch (e) {
             log.fatal("failed to make directory `%s`", dirPath);
             console.error(e);
@@ -402,15 +367,11 @@ export function loadChannels(): Channel[] {
     }
 
     // copy if not exists
-    if (fs.existsSync(path) === false) {
+    if (existsSync(path) === false) {
         log.info("missing channels config `%s`", path);
         try {
             log.info("copying default channels config to `%s`", path);
-            if (process.platform === "win32") {
-                fs.copyFileSync("config/channels.win32.yml", path);
-            } else {
-                fs.copyFileSync("config/channels.yml", path);
-            }
+            await copyFile("config/channels.yml", path);
         } catch (e) {
             log.fatal("failed to copy channels config to `%s`", path);
             console.error(e);
@@ -425,32 +386,39 @@ export function saveChannels(data: Channel[]): Promise<void> {
     return save("channels", CHANNELS_CONFIG_PATH, data);
 }
 
-function load(name: "server", path: string): Server;
-function load(name: "tuners", path: string): Tuner[];
-function load(name: "channels", path: string): Channel[];
-function load(name: string, path: string) {
+// use queue because async fs ops is not thread safe
+const configIOQueue = new Queue(1, Infinity);
 
+async function load(name: "server", path: string): Promise<Server>;
+async function load(name: "tuners", path: string): Promise<Tuner[]>;
+async function load(name: "channels", path: string): Promise<Channel[]>;
+async function load(name: "server" | "tuners" | "channels", path: string) {
     log.info("load %s config `%s`", name, path);
 
-    return yaml.load(fs.readFileSync(path, "utf8"));
-}
-
-function save(name: "server", path: string, data: Server): Promise<void>;
-function save(name: "tuners", path: string, data: Tuner[]): Promise<void>;
-function save(name: "channels", path: string, data: Channel[]): Promise<void>;
-function save(name: string, path: string, data: object): Promise<void> {
-
-    log.info("save %s config `%s`", name, path);
-
-    return new Promise<void>((resolve, reject) => {
-
-        fs.writeFile(path, yaml.dump(data), err => {
-
-            if (err) {
-                return reject(err);
-            }
-
-            resolve();
-        });
+    return configIOQueue.add(async () => {
+        return yaml.load(await readFile(path, "utf8"));
     });
 }
+
+async function save(name: "server", path: string, data: Server): Promise<void>;
+async function save(name: "tuners", path: string, data: Tuner[]): Promise<void>;
+async function save(name: "channels", path: string, data: Channel[]): Promise<void>;
+async function save(name: "server" | "tuners" | "channels", path: string, data: object): Promise<void> {
+    log.info("save %s config `%s`", name, path);
+
+    await configIOQueue.add(async () => {
+        await writeFile(path, yaml.dump(data));
+    });
+}
+
+process.on("beforeExit", () => {
+    if (configIOQueue.getQueueLength() + configIOQueue.getPendingLength() === 0) {
+        return;
+    }
+
+    log.warn("configIOQueue is not empty. waiting for completion...");
+
+    setTimeout(() => {
+        log.warn("try to exit again...");
+    }, 100);
+});

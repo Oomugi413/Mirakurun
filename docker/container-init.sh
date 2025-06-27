@@ -11,6 +11,10 @@ export PATH=/opt/bin:$PATH
 export DOCKER=YES
 export INIT_PID=$$
 
+# npm
+export npm_config_cache=/tmp/.npm
+export npm_config_update_notifier=false
+
 # tweaks for glibc memory usage
 export MALLOC_ARENA_MAX=2
 
@@ -18,7 +22,9 @@ export MALLOC_ARENA_MAX=2
 function trap_exit() {
   echo "stopping... $(jobs -p)"
   kill $(jobs -p) > /dev/null 2>&1 || echo "already killed."
-  /etc/init.d/pcscd stop
+  if [ "$DISABLE_PCSCD" != "1" ] && [ -e "/etc/init.d/pcscd" ]; then
+    /etc/init.d/pcscd stop
+  fi
   sleep 1
   echo "exit."
 }
@@ -45,12 +51,12 @@ if [ -e "/opt/bin/startup" ]; then
 fi
 
 # only for test purpose
-if !(type "arib-b25-stream-test" > /dev/null 2>&1); then
+if [ "$DISABLE_B25_TEST" != "1" ] && !(type "arib-b25-stream-test" > /dev/null 2>&1); then
   npm --prefix /opt install arib-b25-stream-test
   ln -sv /opt/node_modules/arib-b25-stream-test/bin/b25 /opt/bin/arib-b25-stream-test
 fi
 
-if [ -e "/etc/init.d/pcscd" ]; then
+if [ "$DISABLE_PCSCD" != "1" ] && [ -e "/etc/init.d/pcscd" ]; then
   while :; do
     echo "starting pcscd..."
     /etc/init.d/pcscd start
@@ -66,7 +72,7 @@ fi
 function start() {
   if [ "$DEBUG" != "true" ]; then
     export NODE_ENV=production
-    node -r source-map-support/register lib/server.js &
+    node --max-semi-space-size=64 -r source-map-support/register lib/server.js &
   else
     npm run debug &
   fi
