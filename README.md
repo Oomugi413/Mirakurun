@@ -55,6 +55,8 @@ A Japanese digital TV tuner API server specifically designed for "Air" (code nam
   4. Windowsのサービス化<br>
       GUIからの再起動コマンドは現在動作しません。
       ```powershell
+      npm install -g node-windows
+      npm link node-windows
       npm run install-win-service # インストール実行
       npm run uninstall-win-service # アンインストール実行
       ```
