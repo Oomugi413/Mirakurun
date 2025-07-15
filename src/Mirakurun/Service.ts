@@ -490,13 +490,18 @@ export class Service {
                     item.logoId = service.logoId;
                 }
                 item.remoteControlKeyId = service.remoteControlKeyId;
-                // タイプとチャンネルが一致した場合スキップする
-                for (let index = 0; index < item.channel.length; index++) {
-                    if (channel.type === item.channel[index].type &&
-                        channel.channel === item.channel[index].channel) {
-                        return;
+
+                // 同じタイプ(GR/BS/CS・・・)のチャンネルをすべて削除(停波などでチャンネルが削除された場合に対応)
+                // 配列の末尾から先頭に向かってループ（spliceで削除してもインデックスがずれないようにするため）
+                for (let i = item.channel.length - 1; i >= 0; i--) {
+                    // 指定された channel.type と一致する要素を見つけたら
+                    if (item.channel[i].type === channel.type) {
+                        // その要素を配列から削除する
+                        item.channel.splice(i, 1);
                     }
                 }
+
+                // チャンネルを追加
                 item.channel.push(channel);
                 // 新規で追加したチャンネルをソートする GR>BS>CS>...>NW40
                 item.channel.sort((a, b) => channelOrder[a.type] - channelOrder[b.type]);

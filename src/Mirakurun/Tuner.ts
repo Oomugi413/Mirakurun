@@ -349,7 +349,7 @@ export class Tuner {
                 channels.push(ch);
             }
         }
-        let tryCount = 50;
+        let tryCount = 10;
 
         if (!dest) {
             const remoteResult = await this._useRemoteData(user, devices);
