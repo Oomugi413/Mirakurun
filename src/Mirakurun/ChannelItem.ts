@@ -26,6 +26,7 @@ export default class ChannelItem {
     readonly channel: string;
     readonly tsmfRelTs: number;
     readonly commandVars: apid.ConfigChannelsItem["commandVars"];
+    readonly allowedTuners: string[] | undefined;
 
     constructor(config: apid.ConfigChannelsItem) {
         this.name = config.name;
@@ -33,6 +34,7 @@ export default class ChannelItem {
         this.channel = config.channel;
         this.tsmfRelTs = config.tsmfRelTs;
         this.commandVars = config.commandVars;
+        this.allowedTuners = config.allowedTuners;
     }
 
     getServices(): ServiceItem[] {

@@ -330,6 +330,8 @@ export interface ConfigChannelsItem {
      * @example { "freq": 123456, "polarity": "H", "space": 6, "extra-args": "..." }
      */
     commandVars?: Record<string, string | number>;
+    /** specify tuner names that can be used for this channel. if not specified, any tuner with matching type will be used. */
+    allowedTuners?: string[];
     isDisabled?: boolean;
     /** @deprecated typo of "satellite". */
     readonly satelite?: string;

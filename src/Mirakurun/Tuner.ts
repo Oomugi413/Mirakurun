@@ -51,9 +51,9 @@ export class Tuner {
      * readyFn
      */
     async readyForJob(channel: ChannelItem): Promise<boolean> {
-        const devices = this._getDevicesByType(channel.type);
+        const devices = this._getDevicesByChannel(channel);
         if (devices.length === 0) {
-            log.error("readyForJob: no tuners for channel type: %s", channel.type);
+            log.error("readyForJob: no tuners for channel: %s (type=%s, allowedTuners=%s)", channel.name, channel.type, channel.allowedTuners?.join(",") || "any");
             return false;
         }
 
@@ -308,7 +308,7 @@ export class Tuner {
             setting.parseEIT = false;
         }
 
-        const devices = this._getDevicesByType(setting.channel.type);
+        const devices = this._getDevicesByChannel(setting.channel);
         let tryCount = 50;
 
         if (!dest) {
@@ -374,6 +374,18 @@ export class Tuner {
         devices: TunerDevice[]
     ): Promise<boolean> {
         const setting = user.streamSetting;
+        const channel = setting.channel;
+
+        // if channel specifies allowedTuners, check if any of them is remote
+        if (channel.allowedTuners && channel.allowedTuners.length > 0) {
+            const hasRemoteTuner = devices.some(d =>
+                channel.allowedTuners.includes(d.config.name) && d.isRemote
+            );
+            if (!hasRemoteTuner) {
+                // channel only has local tuners, don't use remote data
+                return false;
+            }
+        }
 
         const remoteDevice = devices.find(device => device.isRemote);
         if (remoteDevice && setting.networkId !== undefined && setting.parseEIT === true) {
@@ -436,11 +448,21 @@ export class Tuner {
         return null;
     }
 
-    private _getDevicesByType(type: apid.ChannelType): TunerDevice[] {
+    private _getDevicesByChannel(channel: ChannelItem): TunerDevice[] {
         const devices = [];
 
         for (const device of this._devices) {
-            if (device.config.types.includes(type) === true) {
+            // check if tuner supports this channel type
+            if (device.config.types.includes(channel.type) === false) {
+                continue;
+            }
+            // if channel specifies allowedTuners, only return matching tuners
+            if (channel.allowedTuners && channel.allowedTuners.length > 0) {
+                if (channel.allowedTuners.includes(device.config.name)) {
+                    devices.push(device);
+                }
+            } else {
+                // no allowedTuners specified, return all tuners with matching type
                 devices.push(device);
             }
         }
