@@ -70,8 +70,9 @@ import * as log from "./Mirakurun/log";
 (async function top() {
     _.config.server = await config.loadServer();
     _.config.channels = await config.loadChannels();
-    // Only compute hash based on channel identifiers (type + channel + serviceId) to avoid re-scanning when other config fields change
-    const channelIdentifiers = _.config.channels.map(ch => ({ type: ch.type, channel: ch.channel, serviceId: ch.serviceId }));
+    // Only compute hash based on channel identifiers (type + channel) to avoid re-scanning when config fields change
+    // serviceId is excluded because: 1) users may not know remote channel's serviceId, 2) changing serviceId should only affect that channel
+    const channelIdentifiers = _.config.channels.map(ch => ({ type: ch.type, channel: ch.channel }));
     _.configIntegrity.channels = createHash("sha256").update(JSON.stringify(channelIdentifiers)).digest("base64");
     _.config.tuners = await config.loadTuners();
 
