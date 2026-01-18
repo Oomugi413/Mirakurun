@@ -70,7 +70,9 @@ import * as log from "./Mirakurun/log";
 (async function top() {
     _.config.server = await config.loadServer();
     _.config.channels = await config.loadChannels();
-    _.configIntegrity.channels = createHash("sha256").update(JSON.stringify(_.config.channels)).digest("base64");
+    // Only compute hash based on channel identifiers (type + channel + serviceId) to avoid re-scanning when other config fields change
+    const channelIdentifiers = _.config.channels.map(ch => ({ type: ch.type, channel: ch.channel, serviceId: ch.serviceId }));
+    _.configIntegrity.channels = createHash("sha256").update(JSON.stringify(channelIdentifiers)).digest("base64");
     _.config.tuners = await config.loadTuners();
 
     if (typeof _.config.server.logLevel === "number") {
