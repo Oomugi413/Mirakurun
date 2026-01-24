@@ -406,6 +406,7 @@ export default class TunerDevice extends EventEmitter {
             this._process.stdout.destroy();
             this._mmtsDecoderProcess.stdin.end();
             this._mmtsDecoderProcess.kill("SIGTERM");
+            this._mmtsDecoderProcess = null;
         }
 
         this._isAvailable = false;
@@ -438,6 +439,14 @@ export default class TunerDevice extends EventEmitter {
         }
         if (this._stream) {
             this._stream.removeAllListeners();
+        }
+
+        if (this._mmtsDecoderProcess) {
+            this._process.stdout.unpipe();
+            this._process.stdout.destroy();
+            this._mmtsDecoderProcess.stdin.end();
+            this._mmtsDecoderProcess.kill("SIGTERM");
+            this._mmtsDecoderProcess = null;
         }
 
         this._command = null;
