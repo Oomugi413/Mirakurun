@@ -51,9 +51,22 @@ export class Tuner {
      * readyFn
      */
     async readyForJob(channel: ChannelItem): Promise<boolean> {
-        const devices = this._getDevicesByChannel(channel);
-        if (devices.length === 0) {
+        const allDevices = this._getDevicesByChannel(channel);
+        if (allDevices.length === 0) {
             log.error("readyForJob: no tuners for channel: %s (type=%s, allowedTuners=%s)", channel.name, channel.type, channel.allowedTuners?.join(",") || "any");
+            return false;
+        }
+
+        // For background jobs, prefer local tuners.
+        // Only allow remote tuners when allowedTuners is explicitly set to remote-only.
+        const localDevices = allDevices.filter(d => !d.isRemote);
+        const isExplicitRemoteOnly = channel.allowedTuners?.length > 0 && allDevices.every(d => d.isRemote);
+        const devices = localDevices.length > 0 ? localDevices
+                      : isExplicitRemoteOnly ? allDevices
+                      : [];
+
+        if (devices.length === 0) {
+            log.warn("readyForJob: no local tuners for background job on channel: %s (type=%s). To enable remote EPG, set allowedTuners to the remote tuner name(s).", channel.name, channel.type);
             return false;
         }
 
@@ -409,15 +422,14 @@ export class Tuner {
         const setting = user.streamSetting;
         const channel = setting.channel;
 
-        // if channel specifies allowedTuners, check if any of them is remote
-        if (channel.allowedTuners && channel.allowedTuners.length > 0) {
-            const hasRemoteTuner = devices.some(d =>
-                channel.allowedTuners.includes(d.config.name) && d.isRemote
-            );
-            if (!hasRemoteTuner) {
-                // channel only has local tuners, don't use remote data
-                return false;
-            }
+        // Only use remote data when allowedTuners is explicitly set to remote-only tuners.
+        // If allowedTuners is absent, or if any local tuner is present, prefer local.
+        if (!channel.allowedTuners || channel.allowedTuners.length === 0) {
+            return false;
+        }
+        const allRemote = devices.length > 0 && devices.every(d => d.isRemote);
+        if (!allRemote) {
+            return false;
         }
 
         const remoteDevice = devices.find(device => device.isRemote);
