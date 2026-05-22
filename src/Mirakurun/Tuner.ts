@@ -23,6 +23,7 @@ import ChannelItem from "./ChannelItem";
 import ServiceItem from "./ServiceItem";
 import TSFilter from "./TSFilter";
 import TSDecoder from "./TSDecoder";
+import { TSHandoffOptions } from "./TSHandoff";
 
 export class Tuner {
     private _devices: TunerDevice[] = [];
@@ -377,6 +378,7 @@ export class Tuner {
 
         const devices = this._getDevicesByChannel(setting.channel);
         let tryCount = 50;
+        let handoffTried = false;
 
         if (!dest) {
             const remoteResult = await this._useRemoteData(user, devices);
@@ -389,6 +391,12 @@ export class Tuner {
             const device = this._pickTunerDevice(devices, setting.channel, user.priority);
 
             if (device === null) {
+                if (handoffTried === false && await this._rebalanceForChannel(setting.channel, user.priority)) {
+                    handoffTried = true;
+                    continue;
+                }
+                handoffTried = true;
+
                 // retry
                 tryCount--;
                 if (tryCount <= 0) {
@@ -512,6 +520,61 @@ export class Tuner {
         }
 
         return null;
+    }
+
+    private async _rebalanceForChannel(channel: ChannelItem, priority: number): Promise<boolean> {
+        const config = _.config.server.tunerHandoff;
+
+        if (config && config.enabled === false) {
+            return false;
+        }
+        if (priority < 0) {
+            return false;
+        }
+
+        const requestDevices = this._getDevicesByChannel(channel);
+        const handoffOptions = this._getHandoffOptions();
+
+        for (const blockingDevice of requestDevices) {
+            if (blockingDevice.isUsing === false || blockingDevice.channel === channel) {
+                continue;
+            }
+
+            const moveTargets = this._getDevicesByChannel(blockingDevice.channel);
+            for (const moveTarget of moveTargets) {
+                if (moveTarget === blockingDevice || this._readyForJobPickedDeviceSet.has(moveTarget)) {
+                    continue;
+                }
+                if (blockingDevice.canHandoffTo(moveTarget, priority) === false) {
+                    continue;
+                }
+
+                log.info(
+                    "Tuner rebalance: moving `%s` from #%d to #%d to free tuner for `%s`",
+                    blockingDevice.channel.name,
+                    blockingDevice.index,
+                    moveTarget.index,
+                    channel.name
+                );
+
+                if (await blockingDevice.handoffAllUsersTo(moveTarget, priority, handoffOptions)) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    private _getHandoffOptions(): TSHandoffOptions {
+        const config = _.config.server.tunerHandoff || {};
+
+        return {
+            warmupMs: config.warmupMs || 3000,
+            maxBufferMs: config.maxBufferMs || 5000,
+            switchMarginMs: config.switchMarginMs || 100,
+            syncTimeoutMs: config.syncTimeoutMs || 5000
+        };
     }
 
     private _getDevicesByChannel(channel: ChannelItem): TunerDevice[] {

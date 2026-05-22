@@ -26,9 +26,10 @@ import Event from "./Event";
 import ChannelItem from "./ChannelItem";
 import TSFilter from "./TSFilter";
 import Client, { ProgramsQuery } from "../client";
+import { TSHandoffBuffer, TSHandoffOptions, TSHandoffProbe } from "./TSHandoff";
 
 interface User extends common.User {
-    _stream?: TSFilter;
+    _stream?: TSFilter | TSHandoffBuffer;
 }
 
 export interface TunerDeviceStatus {
@@ -53,6 +54,7 @@ export default class TunerDevice extends EventEmitter {
     private _stream: stream.Readable = null;
 
     private _users = new Set<User>();
+    private _handoffProbe: TSHandoffProbe = null;
 
     private _isAvailable = true;
     private _isRemote = false;
@@ -142,6 +144,20 @@ export default class TunerDevice extends EventEmitter {
         return priority;
     }
 
+    canHandoffTo(device: TunerDevice, priority: number): boolean {
+        if (this.isUsing === false || this._channel === null) {
+            return false;
+        }
+        if (device.isFree === false || device.config.types.includes(this._channel.type) === false) {
+            return false;
+        }
+        if (priority >= 0 && this.getPriority() > priority) {
+            return false;
+        }
+
+        return true;
+    }
+
     toJSON(): TunerDeviceStatus {
         return {
             index: this._index,
@@ -206,6 +222,10 @@ export default class TunerDevice extends EventEmitter {
     }
 
     endStream(user: User): void {
+        if (this._users.has(user) === false) {
+            return;
+        }
+
         log.debug("TunerDevice#%d end stream for user `%s` (priority=%d)...", this._index, user.id, user.priority);
 
         user._stream.end();
@@ -222,6 +242,89 @@ export default class TunerDevice extends EventEmitter {
         log.info("TunerDevice#%d end streaming to user `%s` (priority=%d)", this._index, user.id, user.priority);
 
         this._updated();
+    }
+
+    detachStream(user: User): void {
+        if (this._users.has(user) === false) {
+            return;
+        }
+
+        log.info("TunerDevice#%d detaching user `%s` for handoff", this._index, user.id);
+
+        this._users.delete(user);
+
+        if (this._users.size === 0) {
+            setTimeout(() => {
+                if (this._users.size === 0 && this._process) {
+                    this._kill(true).catch(log.error);
+                }
+            }, 3000);
+        }
+
+        this._updated();
+    }
+
+    async handoffAllUsersTo(device: TunerDevice, priority: number, options: TSHandoffOptions): Promise<boolean> {
+        if (this.canHandoffTo(device, priority) === false) {
+            return false;
+        }
+
+        const users = [...this._users];
+        const serviceUser = users.find(user => user.streamSetting && user.streamSetting.serviceId !== undefined);
+        const handoffOptions: TSHandoffOptions = {
+            ...options,
+            serviceId: serviceUser ? serviceUser.streamSetting.serviceId : undefined
+        };
+        const oldProbe = new TSHandoffProbe(handoffOptions.serviceId);
+        const newBuffer = new TSHandoffBuffer(handoffOptions);
+        const tempUser: User = {
+            ...users[0],
+            id: `${users[0].id}:handoff`,
+            priority: this.getPriority()
+        };
+
+        log.info(
+            "TunerDevice#%d handoff starting to TunerDevice#%d for channel `%s` (%d users)",
+            this._index,
+            device.index,
+            this._channel.name,
+            users.length
+        );
+
+        this._handoffProbe = oldProbe;
+
+        try {
+            await device.startStream(tempUser, newBuffer as any, this._channel);
+
+            const switchPCR = await newBuffer.waitForSwitchPCR(() => oldProbe.lastPCR);
+            if (switchPCR === null) {
+                throw new Error("handoff sync timeout");
+            }
+
+            device.detachStream(tempUser);
+            const packets = newBuffer.getPacketsFromPCR(switchPCR) || [];
+
+            for (const user of users) {
+                const stream = user._stream as TSFilter;
+                this.detachStream(user);
+                await device.startStream(user, stream);
+                if (packets.length > 0) {
+                    stream.write(Buffer.concat(packets));
+                }
+            }
+
+            log.info("TunerDevice#%d handoff completed to TunerDevice#%d", this._index, device.index);
+
+            return true;
+        } catch (err) {
+            log.warn("TunerDevice#%d handoff to TunerDevice#%d failed: %s", this._index, device.index, err.message);
+            device.endStream(tempUser);
+            return false;
+        } finally {
+            if (this._handoffProbe === oldProbe) {
+                this._handoffProbe = null;
+            }
+        }
     }
 
     async getRemotePrograms(query?: ProgramsQuery): Promise<apid.Program[]> {
@@ -376,6 +479,9 @@ export default class TunerDevice extends EventEmitter {
     private _streamOnData(chunk: Buffer): void {
         for (const user of this._users) {
             user._stream.write(chunk);
+        }
+        if (this._handoffProbe !== null) {
+            this._handoffProbe.write(chunk);
         }
     }
 

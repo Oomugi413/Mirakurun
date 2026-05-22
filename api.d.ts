@@ -274,6 +274,13 @@ export interface ConfigServer {
     epgGatheringJobSchedule?: string;
     epgRetrievalTime?: number;
     logoDataInterval?: number;
+    tunerHandoff?: {
+        enabled?: boolean;
+        warmupMs?: number;
+        maxBufferMs?: number;
+        switchMarginMs?: number;
+        syncTimeoutMs?: number;
+    };
     disableEITParsing?: boolean;
     disableWebUI?: boolean;
     allowIPv4CidrRanges?: string[];

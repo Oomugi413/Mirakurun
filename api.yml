@@ -565,6 +565,19 @@ definitions:
         type: integer
       logoDataInterval:
         type: integer
+      tunerHandoff:
+        type: object
+        properties:
+          enabled:
+            type: boolean
+          warmupMs:
+            type: integer
+          maxBufferMs:
+            type: integer
+          switchMarginMs:
+            type: integer
+          syncTimeoutMs:
+            type: integer
       disableEITParsing:
         type: boolean
       disableWebUI:
