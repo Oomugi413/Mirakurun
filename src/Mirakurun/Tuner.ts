@@ -292,7 +292,7 @@ export class Tuner {
         const tuners = _.config.tuners;
 
         tuners.forEach((tuner, i) => {
-            if (!tuner.name || !tuner.types || (!tuner.remoteMirakurunHost && !tuner.command)) {
+            if (!tuner.name || !tuner.types || (!tuner.remoteMirakurunHost && !tuner.command && !tuner.commandBS4K)) {
                 log.error("missing required property in tuner#%s configuration", i);
                 return;
             }
@@ -308,8 +308,19 @@ export class Tuner {
                 return;
             }
 
-            if (!tuner.remoteMirakurunHost && typeof tuner.command !== "string") {
+            const hasOnlyBS4K = tuner.types.length > 0 && tuner.types.every(type => type === "BS4K");
+            if (!tuner.remoteMirakurunHost && !hasOnlyBS4K && typeof tuner.command !== "string") {
                 log.error("invalid type of property `command` in tuner#%s configuration", i);
+                return;
+            }
+
+            if (tuner.command !== undefined && typeof tuner.command !== "string") {
+                log.error("invalid type of property `command` in tuner#%s configuration", i);
+                return;
+            }
+
+            if (tuner.commandBS4K !== undefined && typeof tuner.commandBS4K !== "string") {
+                log.error("invalid type of property `commandBS4K` in tuner#%s configuration", i);
                 return;
             }
 
@@ -330,6 +341,16 @@ export class Tuner {
 
             if (tuner.remoteMirakurunDecoder !== undefined && typeof tuner.remoteMirakurunDecoder !== "boolean") {
                 log.error("invalid type of property `remoteMirakurunDecoder` in tuner#%s configuration", i);
+                return;
+            }
+
+            if (tuner.mmtsDecoder !== undefined && typeof tuner.mmtsDecoder !== "string") {
+                log.error("invalid type of property `mmtsDecoder` in tuner#%s configuration", i);
+                return;
+            }
+
+            if (tuner.decoder !== undefined && typeof tuner.decoder !== "string") {
+                log.error("invalid type of property `decoder` in tuner#%s configuration", i);
                 return;
             }
 
@@ -377,7 +398,7 @@ export class Tuner {
             } else {
                 // found
                 let output: Writable;
-                if (user.disableDecoder === true || device.decoder === null) {
+                if (user.disableDecoder === true || device.decoder === null || setting.channel.type === "BS4K") {
                     output = dest;
                 } else {
                     output = new TSDecoder({

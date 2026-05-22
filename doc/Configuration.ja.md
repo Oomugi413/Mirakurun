@@ -82,14 +82,17 @@
 ```yaml
 # 配列
 - name: チューナー識別名 # String
-  types: # (GR|BS|CS|SKY)[]
+  types: # (GR|BS|CS|SKY|BS4K)[]
     - GR
     - BS
     - CS
     - SKY
+    - BS4K
   # chardev/dvb用
   # "<template>"は`commandVars[template]`または"(空)"に置き換えられます *@4.0.0~
   command: cmd <channel> --arg1 --arg2 <exampleArg1> <exampleArg2>... # String
+  # BS4K用の任意のコマンド。省略時は`command`が使われます。
+  commandBS4K: cmd-bs4k <channel> --arg1 --arg2 <exampleArg1> <exampleArg2>... # String
   # dvb用
   dvbDevicePath: /dev/dvb/adapter/dvr/path # String
   # リモートMirakurunとの多重化用
@@ -98,12 +101,17 @@
   remoteMirakurunDecoder: false # Boolean
   # 以下はオプション
   decoder: cmd # String
+  mmtsDecoder: cmd # String
   isDisabled: false # Boolean
 ```
 
 #### decoder
 
 必要に応じてCAS処理コマンドを指定します。
+
+#### commandBS4K / mmtsDecoder
+
+`BS` / `CS` と `BS4K` を同じチューナーで扱う場合、`commandBS4K` を指定すると `BS4K` チャンネルだけ別コマンドで起動できます。省略時は `command` が使われます。`BS4K` コマンドの出力に MMTS 変換が必要な場合は `mmtsDecoder` を指定します。
 
 ```
 # 参考: MPEG-2 TS の流れ

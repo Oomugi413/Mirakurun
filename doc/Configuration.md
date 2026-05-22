@@ -82,14 +82,17 @@
 ```yaml
 # Array
 - name: TunerIdentificationName # String
-  types: # (GR|BS|CS|SKY)[]
+  types: # (GR|BS|CS|SKY|BS4K)[]
     - GR
     - BS
     - CS
     - SKY
+    - BS4K
   # For chardev/dvb
   # "<template>" will be replaced with `commandVars[template]` or "(empty)" *@4.0.0~
   command: cmd <channel> --arg1 --arg2 <exampleArg1> <exampleArg2>... # String
+  # Optional command used only for BS4K. Falls back to `command` when omitted.
+  commandBS4K: cmd-bs4k <channel> --arg1 --arg2 <exampleArg1> <exampleArg2>... # String
   # For dvb
   dvbDevicePath: /dev/dvb/adapter/dvr/path # String
   # For multiplexing with remote Mirakurun
@@ -98,12 +101,17 @@
   remoteMirakurunDecoder: false # Boolean
   # Optional parameters below
   decoder: cmd # String
+  mmtsDecoder: cmd # String
   isDisabled: false # Boolean
 ```
 
 #### decoder
 
 Specify the CAS processing command as needed.
+
+#### commandBS4K / mmtsDecoder
+
+When a tuner supports `BS4K` together with `BS` / `CS`, specify `commandBS4K` to use a dedicated command for `BS4K` channels. If `commandBS4K` is omitted, `command` is used. Specify `mmtsDecoder` when the `BS4K` command output needs MMTS conversion.
 
 ```
 # Reference: MPEG-2 TS flow

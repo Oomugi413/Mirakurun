@@ -71,7 +71,8 @@ const channelOrder: Record<apid.ChannelType, number> = {
     GR: 1,
     BS: 2,
     CS: 3,
-    SKY: 4
+    SKY: 4,
+    BS4K: 5
 };
 
 /**
@@ -193,7 +194,7 @@ export function generateScanConfig(option: ChannelScanOption): ScanConfig | unde
     };
 
     // Handle BS (Broadcast Satellite) channels
-    if (option.type === "BS") {
+    if (option.type === "BS" || option.type === "BS4K") {
         // Handle subchannel style BS scanning (e.g. BS01_0)
         if (satelliteOptions.useSubCh) {
             const bsSubchOptions = {
@@ -260,7 +261,7 @@ export function generateScanConfig(option: ChannelScanOption): ScanConfig | unde
 /**
  * Generates a channel item for a specific service
  *
- * @param type The channel type (GR, BS, CS, SKY)
+ * @param type The channel type (GR, BS, CS, SKY, BS4K)
  * @param channel The channel identifier
  * @param service The service information
  * @param setDisabledOnAdd Whether to set the channel as disabled initially
@@ -291,7 +292,7 @@ export function generateChannelItemForService(
  * Generates a channel item for a channel with multiple services
  * Finding a common prefix among all service names for the channel name
  *
- * @param type The channel type (GR, BS, CS, SKY)
+ * @param type The channel type (GR, BS, CS, SKY, BS4K)
  * @param channel The channel identifier
  * @param services Array of services on this channel
  * @param setDisabledOnAdd Whether to set the channel as disabled initially
@@ -347,7 +348,7 @@ export function generateChannelItemForChannel(
  * Generates channel items based on scan mode, either per service or per channel
  *
  * @param scanMode The scan mode (Service or Channel)
- * @param type The channel type (GR, BS, CS, SKY)
+ * @param type The channel type (GR, BS, CS, SKY, BS4K)
  * @param channel The channel identifier
  * @param services Array of services found on this channel
  * @param setDisabledOnAdd Whether to set new channels as disabled
@@ -420,7 +421,7 @@ type ScanStatusUpdate = PhaseScanStatusUpdate | StepScanStatusUpdate | ResultSca
  *
  * @param scanConfig Configuration for the scan including channels to scan
  * @param dryRun If true, don't save changes
- * @param type Channel type being scanned (GR, BS, CS, SKY)
+ * @param type Channel type being scanned (GR, BS, CS, SKY, BS4K)
  * @param refresh Whether to rescan channels that already exist
  * @param outputWriter Optional function to write output text during scan
  * @returns Promise resolving to the final channel list
@@ -926,7 +927,7 @@ About BS Subchannel Style:
             in: "query",
             name: "type",
             type: "string",
-            enum: ["GR", "BS", "CS"] as apid.ChannelType[],
+            enum: ["GR", "BS", "CS", "BS4K"] as apid.ChannelType[],
             default: "GR",
             description: "Specifies the channel type to scan."
         },

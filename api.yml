@@ -90,6 +90,7 @@ definitions:
       - BS
       - CS
       - SKY
+      - BS4K
 
   # service -------------------------------------------------------------------
 
@@ -596,6 +597,8 @@ definitions:
           $ref: '#/definitions/ChannelType'
       command:
         type: string
+      commandBS4K:
+        type: string
       dvbDevicePath:
         type: string
       remoteMirakurunHost:
@@ -605,6 +608,8 @@ definitions:
       remoteMirakurunDecoder:
         type: boolean
       decoder:
+        type: string
+      mmtsDecoder:
         type: string
       isDisabled:
         type: boolean

@@ -45,7 +45,7 @@ export interface Channel {
     services?: Service[];
 }
 
-export type ChannelType = "GR" | "BS" | "CS" | "SKY";
+export type ChannelType = "GR" | "BS" | "CS" | "SKY" | "BS4K";
 
 export interface Service {
     id: ServiceItemId;
@@ -301,6 +301,8 @@ export interface ConfigTunersItem {
     types: ChannelType[];
     /** [chardev][dvb] command to get TS. */
     command?: string;
+    /** [chardev][dvb] command to get BS4K/MMTS. Falls back to `command` when omitted. */
+    commandBS4K?: string;
     /** [dvb] dvr adapter device path */
     dvbDevicePath?: string;
     /** [remote] specify to use remote Mirakurun host like as `192.168.1.x`. */
@@ -311,6 +313,8 @@ export interface ConfigTunersItem {
     remoteMirakurunDecoder?: boolean;
     /** CAS processor command if needed. */
     decoder?: string;
+    /** MMTS processor command for BS4K if needed. */
+    mmtsDecoder?: string;
     /** `true` to **disable** this tuner. */
     isDisabled?: boolean;
 }

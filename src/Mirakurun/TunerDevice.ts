@@ -49,6 +49,7 @@ export default class TunerDevice extends EventEmitter {
     private _channel: ChannelItem = null;
     private _command: string = null;
     private _process: child_process.ChildProcess = null;
+    private _mmtsDecoderProcess: child_process.ChildProcess = null;
     private _stream: stream.Readable = null;
 
     private _users = new Set<User>();
@@ -103,6 +104,10 @@ export default class TunerDevice extends EventEmitter {
 
     get decoder(): string {
         return this._config.decoder || null;
+    }
+
+    get mmtsDecoder(): string {
+        return this._config.mmtsDecoder || null;
     }
 
     get isAvailable(): boolean {
@@ -257,7 +262,7 @@ export default class TunerDevice extends EventEmitter {
                 cmd += " decode";
             }
         } else {
-            cmd = this._config.command;
+            cmd = ch.type === "BS4K" && this._config.commandBS4K ? this._config.commandBS4K : this._config.command;
         }
 
         cmd = common.replaceCommandTemplate(cmd, {
@@ -298,7 +303,37 @@ export default class TunerDevice extends EventEmitter {
 
             this._stream = cat.stdout;
         } else {
-            this._stream = this._process.stdout;
+            if (ch.type === "BS4K" && this._config.mmtsDecoder) {
+                const parsedDecoder = common.parseCommandForSpawn(this._config.mmtsDecoder);
+                const mmtsDecoderProcess = child_process.spawn(parsedDecoder.command, parsedDecoder.args);
+                this._mmtsDecoderProcess = mmtsDecoderProcess;
+
+                mmtsDecoderProcess.once("error", (err) => {
+                    log.error("TunerDevice#%d mmtsDecoder process error `%s` (pid=%d)", this._index, err.name, mmtsDecoderProcess.pid);
+
+                    this._kill(false).catch(log.error);
+                });
+
+                mmtsDecoderProcess.once("exit", () => {
+                    mmtsDecoderProcess.stdin.end();
+                });
+
+                mmtsDecoderProcess.once("close", (code, signal) => {
+                    log.debug(
+                        "TunerDevice#%d mmtsDecoder process has closed with code=%d by signal `%s` (pid=%d)",
+                        this._index, code, signal, mmtsDecoderProcess.pid
+                    );
+
+                    if (this._exited === false) {
+                        this._kill(false).catch(log.error);
+                    }
+                });
+
+                this._process.stdout.pipe(mmtsDecoderProcess.stdin);
+                this._stream = mmtsDecoderProcess.stdout;
+            } else {
+                this._stream = this._process.stdout;
+            }
         }
 
         this._process.once("exit", () => this._exited = true);
@@ -371,6 +406,7 @@ export default class TunerDevice extends EventEmitter {
 
         this._isAvailable = false;
         this._closing = close;
+        this._closeMMTSDecoder();
 
         this._updated();
 
@@ -400,6 +436,7 @@ export default class TunerDevice extends EventEmitter {
         if (this._stream) {
             this._stream.removeAllListeners();
         }
+        this._closeMMTSDecoder();
 
         this._command = null;
         this._process = null;
@@ -429,6 +466,20 @@ export default class TunerDevice extends EventEmitter {
         log.info("TunerDevice#%d released", this._index);
 
         this._updated();
+    }
+
+    private _closeMMTSDecoder(): void {
+        if (!this._mmtsDecoderProcess) {
+            return;
+        }
+
+        if (this._process && this._process.stdout) {
+            this._process.stdout.unpipe(this._mmtsDecoderProcess.stdin);
+            this._process.stdout.destroy();
+        }
+        this._mmtsDecoderProcess.stdin.end();
+        this._mmtsDecoderProcess.kill("SIGTERM");
+        this._mmtsDecoderProcess = null;
     }
 
     private _updated(): void {
