@@ -28,6 +28,7 @@ import { TSHandoffOptions } from "./TSHandoff";
 export class Tuner {
     private _devices: TunerDevice[] = [];
     private _readyForJobPickedDeviceSet: Set<TunerDevice> = new Set();
+    private _handoffFailureUntil = new Map<string, number>();
 
     constructor() {
         this._load();
@@ -550,6 +551,11 @@ export class Tuner {
                 if (moveTarget === blockingDevice || this._readyForJobPickedDeviceSet.has(moveTarget)) {
                     continue;
                 }
+                const handoffKey = this._getHandoffKey(blockingDevice, moveTarget, blockingDevice.channel);
+                const failureUntil = this._handoffFailureUntil.get(handoffKey) || 0;
+                if (failureUntil > Date.now()) {
+                    continue;
+                }
                 if (blockingDevice.canHandoffTo(moveTarget, priority) === false) {
                     continue;
                 }
@@ -563,12 +569,22 @@ export class Tuner {
                 );
 
                 if (await blockingDevice.handoffAllUsersTo(moveTarget, priority, handoffOptions)) {
+                    this._handoffFailureUntil.delete(handoffKey);
                     return true;
                 }
+
+                this._handoffFailureUntil.set(
+                    handoffKey,
+                    Date.now() + Math.max(10000, handoffOptions.syncTimeoutMs)
+                );
             }
         }
 
         return false;
+    }
+
+    private _getHandoffKey(source: TunerDevice, target: TunerDevice, channel: ChannelItem): string {
+        return `${source.index}:${target.index}:${channel.type}:${channel.channel}`;
     }
 
     private _getHandoffOptions(): TSHandoffOptions {

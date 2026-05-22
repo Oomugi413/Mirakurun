@@ -321,7 +321,12 @@ export default class TunerDevice extends EventEmitter {
 
             const switchPCR = await newBuffer.waitForSwitchPCR(() => oldProbe.lastPCR);
             if (switchPCR === null) {
-                throw new Error("handoff sync timeout");
+                throw new Error(util.format(
+                    "handoff sync timeout (oldPCR=%s, newPCR=%s, deltaMs=%s)",
+                    formatPCR(oldProbe.lastPCR),
+                    formatPCR(newBuffer.lastPCR),
+                    formatPCRDelta(newBuffer.lastPCR, oldProbe.lastPCR)
+                ));
             }
 
             device.detachStream(tempUser);
@@ -343,6 +348,9 @@ export default class TunerDevice extends EventEmitter {
         } catch (err) {
             log.warn("TunerDevice#%d handoff to TunerDevice#%d failed: %s", this._index, device.index, err.message);
             device.endStream(tempUser);
+            if (device._users.size === 0 && device._process) {
+                await device._kill(true).catch(log.error);
+            }
             return false;
         } finally {
             if (this._handoffProbe === oldProbe) {
@@ -634,4 +642,16 @@ export default class TunerDevice extends EventEmitter {
     private _updated(): void {
         Event.emit("tuner", "update", this.toJSON());
     }
+}
+
+function formatPCR(pcr: number): string {
+    return pcr === null || pcr === undefined ? "null" : pcr.toString(10);
+}
+
+function formatPCRDelta(left: number, right: number): string {
+    if (left === null || left === undefined || right === null || right === undefined) {
+        return "null";
+    }
+
+    return ((left - right) / 27000).toFixed(1);
 }
