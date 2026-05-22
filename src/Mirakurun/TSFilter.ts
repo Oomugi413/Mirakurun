@@ -139,6 +139,7 @@ export default class TSFilter extends EventEmitter {
     private _logoDataTimer: NodeJS.Timeout;
     private _provideEventLastDetectedAt = -1;
     private _provideEventTimeout: NodeJS.Timeout = null;
+    private _closeReason = "unknown";
 
     /** Number divisible by a multiple of 188 */
     private _maxBufferBytesBeforeReady: number = (() => {
@@ -188,8 +189,8 @@ export default class TSFilter extends EventEmitter {
         }
         if (options.output) {
             this._output = options.output;
-            this._output.once("finish", this._close.bind(this));
-            this._output.once("close", this._close.bind(this));
+            this._output.once("finish", () => this._close("output:finish"));
+            this._output.once("close", () => this._close("output:close"));
         } else {
             this._provideServiceId = null;
             this._provideEventId = null;
@@ -221,13 +222,13 @@ export default class TSFilter extends EventEmitter {
         this._parser.on("eit", this._onEIT.bind(this));
         this._parser.on("tot", this._onTOT.bind(this));
 
-        this.once("end", this._close.bind(this));
-        this.once("close", this._close.bind(this));
+        this.once("end", () => this._close("filter:end"));
+        this.once("close", () => this._close("filter:close"));
 
-        log.info("TSFilter: created (serviceId=%d, eventId=%d)", this._provideServiceId, this._provideEventId);
+        log.info("TSFilter: created (serviceId=%s, eventId=%s)", formatNullableId(this._provideServiceId), formatNullableId(this._provideEventId));
 
         if (this._ready === false) {
-            log.info("TSFilter: waiting for serviceId=%d, eventId=%d", this._provideServiceId, this._provideEventId);
+            log.info("TSFilter: waiting for serviceId=%s, eventId=%s", formatNullableId(this._provideServiceId), formatNullableId(this._provideEventId));
         }
 
         ++status.streamCount.tsFilter;
@@ -294,11 +295,11 @@ export default class TSFilter extends EventEmitter {
     }
 
     end(): void {
-        this._close();
+        this._close("end");
     }
 
     close(): void {
-        this._close();
+        this._close("close");
     }
 
     private _processPackets(packets: Buffer[]): void {
@@ -801,7 +802,7 @@ export default class TSFilter extends EventEmitter {
         }
 
         log.warn("TSFilter#_observeProvideEvent: closing because EIT p/f timed out for eventId=%d...", this._provideEventId);
-        this._close();
+        this._close("event-timeout");
     }
 
     private async _standbyLogoData(): Promise<void> {
@@ -1026,10 +1027,11 @@ export default class TSFilter extends EventEmitter {
         }
     }
 
-    private _close(): void {
+    private _close(reason = "unknown"): void {
         if (this._closed) {
             return;
         }
+        this._closeReason = reason;
         this._closed = true;
 
         // clear timer
@@ -1081,10 +1083,14 @@ export default class TSFilter extends EventEmitter {
 
         --status.streamCount.tsFilter;
 
-        log.info("TSFilter#_close: closed (serviceId=%s, eventId=%s)", this._provideServiceId, this._provideEventId);
+        log.info("TSFilter#_close: closed (serviceId=%s, eventId=%s, reason=%s)", formatNullableId(this._provideServiceId), formatNullableId(this._provideEventId), this._closeReason);
 
         // close
         this.emit("close");
         this.emit("end");
     }
+}
+
+function formatNullableId(id: number): string {
+    return id === null || id === undefined ? "null" : id.toString(10);
 }

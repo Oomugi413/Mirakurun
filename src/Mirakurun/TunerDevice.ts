@@ -326,14 +326,15 @@ export default class TunerDevice extends EventEmitter {
 
             device.detachStream(tempUser);
             const packets = newBuffer.getPacketsFromPCR(switchPCR) || [];
+            const bufferedOutput = packets.length > 0 ? Buffer.concat(packets) : null;
 
             for (const user of users) {
                 const stream = user._stream as TSFilter;
                 this.detachStream(user);
-                await device.startStream(user, stream);
-                if (packets.length > 0) {
-                    stream.write(Buffer.concat(packets));
+                if (bufferedOutput !== null && stream.closed === false) {
+                    stream.write(bufferedOutput);
                 }
+                await device.startStream(user, stream);
             }
 
             log.info("TunerDevice#%d handoff completed to TunerDevice#%d", this._index, device.index);

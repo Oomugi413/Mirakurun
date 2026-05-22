@@ -530,7 +530,7 @@ export class Tuner {
     private async _rebalanceForChannel(channel: ChannelItem, priority: number): Promise<boolean> {
         const config = _.config.server.tunerHandoff;
 
-        if (config && config.enabled === false) {
+        if (!config || config.enabled !== true) {
             return false;
         }
         if (priority < 0) {
@@ -575,10 +575,10 @@ export class Tuner {
         const config = _.config.server.tunerHandoff || {};
 
         return {
-            warmupMs: config.warmupMs || 3000,
-            maxBufferMs: config.maxBufferMs || 5000,
-            switchMarginMs: config.switchMarginMs || 100,
-            syncTimeoutMs: config.syncTimeoutMs || 5000
+            warmupMs: config.warmupMs ?? 0,
+            maxBufferMs: config.maxBufferMs ?? 10000,
+            switchMarginMs: config.switchMarginMs ?? 100,
+            syncTimeoutMs: config.syncTimeoutMs ?? 5000
         };
     }
 

@@ -59,7 +59,7 @@
 | `epgGatheringJobSchedule` | `EPG_GATHERING_JOB_SCHEDULE` | String | `20,50 * * * *` | EPG 収集スケジュール (cron 風形式) |
 | `epgRetrievalTime` | `EPG_RETRIEVAL_TIME` | Integer | `600000` | EPG 取得時間 (ミリ秒) |
 | `logoDataInterval` | `LOGO_DATA_INTERVAL` | Integer | `604800000` | ロゴデータ更新間隔 (ミリ秒) |
-| `tunerHandoff` | - | Object | `{ enabled: true, warmupMs: 3000, maxBufferMs: 5000, switchMarginMs: 100, syncTimeoutMs: 5000 }` | 使用中チューナーの再配置時に PCR 同期とバッファ付き切り替えを行う設定 |
+| `tunerHandoff` | - | Object | `{ enabled: false, warmupMs: 0, maxBufferMs: 10000, switchMarginMs: 100, syncTimeoutMs: 5000 }` | 使用中チューナーの再配置時に PCR 同期とバッファ付き切り替えを行う実験的な設定 |
 | `disableEITParsing` | `DISABLE_EIT_PARSING` | Boolean | `false` | ⚠️EIT パースの無効化 |
 | `disableWebUI` | `DISABLE_WEB_UI` | Boolean | `false` | ⚠️Web UI の無効化 |
 | `allowIPv4CidrRanges` | `ALLOW_IPV4_CIDR_RANGES` | String[] | `["10.0.0.0/8", "127.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16"]` | ⚠️許可する IPv4 CIDR ブロック |
