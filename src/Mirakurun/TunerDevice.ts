@@ -14,6 +14,7 @@
    limitations under the License.
 */
 import * as child_process from "child_process";
+import { existsSync } from "fs";
 import * as stream from "stream";
 import * as util from "util";
 import EventEmitter = require("eventemitter3");
@@ -62,6 +63,7 @@ export default class TunerDevice extends EventEmitter {
     private _fatalCount = 0;
     private _exited = false;
     private _closing = false;
+    private _lastDevicePathReady: boolean = null;
 
     constructor(private _index: number, private _config: apid.ConfigTunersItem) {
         super();
@@ -132,6 +134,10 @@ export default class TunerDevice extends EventEmitter {
         return this._isFault;
     }
 
+    get checkDevicePath(): string {
+        return this._config.checkDevicePath || this._config.dvbDevicePath || null;
+    }
+
     getPriority(): number {
         let priority = -2;
 
@@ -148,7 +154,7 @@ export default class TunerDevice extends EventEmitter {
         if (this.isUsing === false || this._channel === null) {
             return false;
         }
-        if (device.isFree === false || device.config.types.includes(this._channel.type) === false) {
+        if (device.isFree === false || device.config.types.includes(this._channel.type) === false || device.canStartStream(this._channel) === false) {
             return false;
         }
         if (priority >= 0 && this.getPriority() > priority) {
@@ -156,6 +162,17 @@ export default class TunerDevice extends EventEmitter {
         }
 
         return true;
+    }
+
+    canStartStream(channel?: ChannelItem): boolean {
+        if (this._isAvailable === false) {
+            return false;
+        }
+        if (channel && this._config.types.includes(channel.type) === false) {
+            return false;
+        }
+
+        return this._isDevicePathReady();
     }
 
     toJSON(): TunerDeviceStatus {
@@ -196,6 +213,9 @@ export default class TunerDevice extends EventEmitter {
 
             if (this._stream) {
                 if (channel.channel !== this._channel.channel) {
+                    if (this.canStartStream(channel) === false) {
+                        throw new Error(util.format("TunerDevice#%d device path is not available", this._index));
+                    }
                     if (user.priority <= this.getPriority()) {
                         throw new Error(util.format("TunerDevice#%d has higher priority user", this._index));
                     }
@@ -204,6 +224,9 @@ export default class TunerDevice extends EventEmitter {
                     this._spawn(channel);
                 }
             } else {
+                if (this.canStartStream(channel) === false) {
+                    throw new Error(util.format("TunerDevice#%d device path is not available", this._index));
+                }
                 this._spawn(channel);
             }
         }
@@ -483,6 +506,25 @@ export default class TunerDevice extends EventEmitter {
         if (this._handoffProbe !== null) {
             this._handoffProbe.write(chunk);
         }
+    }
+
+    private _isDevicePathReady(): boolean {
+        const path = this.checkDevicePath;
+        if (!path) {
+            return true;
+        }
+
+        const ready = existsSync(path);
+        if (ready !== this._lastDevicePathReady) {
+            if (ready) {
+                log.info("TunerDevice#%d preflight device path is available: `%s`", this._index, path);
+            } else {
+                log.warn("TunerDevice#%d skipped because preflight device path is missing: `%s`", this._index, path);
+            }
+            this._lastDevicePathReady = ready;
+        }
+
+        return ready;
     }
 
     private _end(): void {

@@ -312,6 +312,8 @@ export interface ConfigTunersItem {
     commandBS4K?: string;
     /** [dvb] dvr adapter device path */
     dvbDevicePath?: string;
+    /** Optional device path checked before starting this tuner. Falls back to dvbDevicePath when omitted. */
+    checkDevicePath?: string;
     /** [remote] specify to use remote Mirakurun host like as `192.168.1.x`. */
     remoteMirakurunHost?: string;
     /** [remote] specify to use remote Mirakurun port number (default: 40772). */

@@ -96,6 +96,8 @@
   commandBS4K: cmd-bs4k <channel> --arg1 --arg2 <exampleArg1> <exampleArg2>... # String
   # For dvb
   dvbDevicePath: /dev/dvb/adapter/dvr/path # String
+  # Optional preflight path. If omitted, dvbDevicePath is checked when set.
+  checkDevicePath: /dev/px4video0 # String
   # For multiplexing with remote Mirakurun
   remoteMirakurunHost: 192.168.x.x # String
   remoteMirakurunPort: 40772 # Integer
@@ -113,6 +115,10 @@ Specify the CAS processing command as needed.
 #### commandBS4K / mmtsDecoder
 
 When a tuner supports `BS4K` together with `BS` / `CS`, specify `commandBS4K` to use a dedicated command for `BS4K` channels. If `commandBS4K` is omitted, `command` is used. Specify `mmtsDecoder` when the `BS4K` command output needs MMTS conversion.
+
+#### checkDevicePath
+
+Specify a device path that must exist before this tuner can be started. If the path is missing, Mirakurun skips this tuner and tries the next matching tuner. When `checkDevicePath` is omitted, `dvbDevicePath` is used as the preflight path if it is set.
 
 ```
 # Reference: MPEG-2 TS flow

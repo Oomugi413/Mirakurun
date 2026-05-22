@@ -330,6 +330,11 @@ export class Tuner {
                 return;
             }
 
+            if (tuner.checkDevicePath && typeof tuner.checkDevicePath !== "string") {
+                log.error("invalid type of property `checkDevicePath` in tuner#%s configuration", i);
+                return;
+            }
+
             if (tuner.remoteMirakurunHost && typeof tuner.remoteMirakurunHost !== "string") {
                 log.error("invalid type of property `remoteMirakurunHost` in tuner#%s configuration", i);
                 return;
@@ -497,14 +502,14 @@ export class Tuner {
 
         // 2. start as new
         for (const device of devices) {
-            if (device.isFree === true) {
+            if (device.isFree === true && device.canStartStream(channel) === true) {
                 return device;
             }
         }
 
         // 3. replace existing
         for (const device of devices) {
-            if (device.isAvailable === true && device.users.length === 0) {
+            if (device.isAvailable === true && device.users.length === 0 && device.canStartStream(channel) === true) {
                 return device;
             }
         }
@@ -513,7 +518,7 @@ export class Tuner {
         if (priority >= 0) {
             devices.sort((t1, t2) => t1.getPriority() - t2.getPriority());
             for (const device of devices) {
-                if (device.isUsing === true && device.getPriority() < priority) {
+                if (device.isUsing === true && device.getPriority() < priority && device.canStartStream(channel) === true) {
                     return device;
                 }
             }

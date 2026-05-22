@@ -96,6 +96,8 @@
   commandBS4K: cmd-bs4k <channel> --arg1 --arg2 <exampleArg1> <exampleArg2>... # String
   # dvb用
   dvbDevicePath: /dev/dvb/adapter/dvr/path # String
+  # 任意の事前確認パス。未指定時は dvbDevicePath が設定されていればそれを確認します。
+  checkDevicePath: /dev/px4video0 # String
   # リモートMirakurunとの多重化用
   remoteMirakurunHost: 192.168.x.x # String
   remoteMirakurunPort: 40772 # Integer
@@ -113,6 +115,10 @@
 #### commandBS4K / mmtsDecoder
 
 `BS` / `CS` と `BS4K` を同じチューナーで扱う場合、`commandBS4K` を指定すると `BS4K` チャンネルだけ別コマンドで起動できます。省略時は `command` が使われます。`BS4K` コマンドの出力に MMTS 変換が必要な場合は `mmtsDecoder` を指定します。
+
+#### checkDevicePath
+
+このチューナーを開始する前に存在確認するデバイスパスを指定します。パスが存在しない場合、Mirakurun はこのチューナーをスキップして次の一致するチューナーを試します。`checkDevicePath` が未指定の場合、`dvbDevicePath` が設定されていればそれを事前確認パスとして使用します。
 
 ```
 # 参考: MPEG-2 TS の流れ

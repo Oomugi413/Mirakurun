@@ -211,6 +211,19 @@ const Configurator: React.FC<{ uiState: UIState, uiStateEvents: EventEmitter }> 
                                     setEditing([...editing]);
                                 }}
                             />
+                            <TextField
+                                label="Check Device Path:"
+                                value={tuner.checkDevicePath || ""}
+                                placeholder="Falls back to DVB Device Path when empty"
+                                onChange={(ev, newValue) => {
+                                    if (newValue === "") {
+                                        delete tuner.checkDevicePath;
+                                    } else {
+                                        tuner.checkDevicePath = newValue;
+                                    }
+                                    setEditing([...editing]);
+                                }}
+                            />
                         </>
                     )}
                     {!tuner.command && (
