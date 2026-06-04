@@ -16,7 +16,6 @@
 import { join, dirname } from "path";
 import { existsSync } from "fs";
 import { stat, mkdir, readFile, writeFile } from "fs/promises";
-import { sleep } from "./common";
 import * as log from "./log";
 import * as db from "./db";
 import _ from "./_";
@@ -276,16 +275,6 @@ export class Service {
                     }
 
                     this._queueScanToAdd(channel);
-                }
-            },
-            readyFn: async () => {
-                // wait for all Service.Check-Add.* jobs to finish
-                while (true) {
-                    if (_.job.jobs.some(job => job.status !== "finished" && job.key.includes("Service.Add.Check."))) {
-                        await sleep(1000);
-                        continue;
-                    }
-                    return true;
                 }
             }
         });
