@@ -167,6 +167,9 @@ export default class ServiceItem {
             case "GR":
                 order = "1";
                 break;
+            case "GR-ALT":
+                order = "1";
+                break;
             case "BS":
                 order = "2";
                 break;

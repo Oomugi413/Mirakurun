@@ -87,6 +87,7 @@ definitions:
     type: string
     enum:
       - GR
+      - GR-ALT
       - BS
       - CS
       - SKY

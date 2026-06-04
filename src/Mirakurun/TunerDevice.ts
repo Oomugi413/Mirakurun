@@ -391,7 +391,7 @@ export default class TunerDevice extends EventEmitter {
             cmd = "node lib/remote";
             cmd += " " + this._config.remoteMirakurunHost;
             cmd += " " + (this._config.remoteMirakurunPort || 40772);
-            cmd += " " + ch.type;
+            cmd += " " + common.getTuningChannelType(ch.type);
             cmd += " " + ch.channel;
             if (this._config.remoteMirakurunDecoder === true) {
                 cmd += " decode";
@@ -402,7 +402,8 @@ export default class TunerDevice extends EventEmitter {
 
         cmd = common.replaceCommandTemplate(cmd, {
             channel: ch.channel,
-            type: ch.type,
+            type: common.getTuningChannelType(ch.type),
+            channelType: ch.type,
             satelite: ch.commandVars?.satellite || "", // deprecated, for backward compatibility
             space: 0, // default value for backward compatibility
             ...ch.commandVars

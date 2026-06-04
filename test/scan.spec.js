@@ -15,6 +15,15 @@ describe("[scan.spec] /api/config/channel/scan : generateScanConfig", () => {
         });
     });
 
+    it("GR-ALT: Type only", () => {
+        const config = scan.generateScanConfig({
+            type: "GR-ALT"
+        });
+        assert.deepStrictEqual(config, scan.generateScanConfig({
+            type: "GR"
+        }));
+    });
+
     it("GR: startCh only", () => {
         const config = scan.generateScanConfig({
             type: "GR",

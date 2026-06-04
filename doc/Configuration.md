@@ -83,8 +83,9 @@
 ```yaml
 # Array
 - name: TunerIdentificationName # String
-  types: # (GR|BS|CS|SKY|BS4K)[]
+  types: # (GR|GR-ALT|BS|CS|SKY|BS4K)[]
     - GR
+    - GR-ALT
     - BS
     - CS
     - SKY
@@ -148,7 +149,7 @@ sudo npm install arib-b25-stream-test -g --unsafe-perm
 ```yaml
 # Array
 - name: ChannelIdentificationName # String
-  type: GR # Enum [GR|BS|CS|SKY]
+  type: GR # Enum [GR|GR-ALT|BS|CS|SKY|BS4K]
   channel: '0' # String
   # Optional parameters below
   serviceId: 1234 # Integer - Services will be automatically scanned if not specified.

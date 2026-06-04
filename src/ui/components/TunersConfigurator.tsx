@@ -90,7 +90,7 @@ const columns: IColumn[] = [
 
 const dummySelection = new Selection(); // dummy
 
-const typesIndex = ["GR", "BS", "CS", "SKY", "BS4K"];
+const typesIndex = ["GR", "GR-ALT", "BS", "CS", "SKY", "BS4K"];
 function sortTypes(types: ChannelType[]): ChannelType[] {
     return types.sort((a, b) => typesIndex.indexOf(a) - typesIndex.indexOf(b));
 }
@@ -151,6 +151,7 @@ const Configurator: React.FC<{ uiState: UIState, uiStateEvents: EventEmitter }> 
                     multiSelect
                     options={[
                         { key: "GR", text: "GR" },
+                        { key: "GR-ALT", text: "GR-ALT" },
                         { key: "BS", text: "BS" },
                         { key: "CS", text: "CS" },
                         { key: "SKY", text: "SKY" },

@@ -100,7 +100,7 @@ const columns: IColumn[] = [
 
 const dummySelection = new Selection(); // dummy
 
-const typesIndex = ["GR", "BS", "CS", "SKY", "BS4K"];
+const typesIndex = ["GR", "GR-ALT", "BS", "CS", "SKY", "BS4K"];
 function sortTypes(types: ChannelType[]): ChannelType[] {
     return types.sort((a, b) => typesIndex.indexOf(a) - typesIndex.indexOf(b));
 }
@@ -351,6 +351,7 @@ const Configurator: React.FC<{ uiState: UIState, uiStateEvents: EventEmitter }> 
                     label="Type"
                     options={[
                         { key: "GR", text: "GR" },
+                        { key: "GR-ALT", text: "GR-ALT" },
                         { key: "BS", text: "BS" },
                         { key: "CS", text: "CS" },
                         { key: "SKY", text: "SKY" },
@@ -764,6 +765,7 @@ const Configurator: React.FC<{ uiState: UIState, uiStateEvents: EventEmitter }> 
                         label="Channel Type"
                         options={[
                             { key: "GR", text: "GR" },
+                            { key: "GR-ALT", text: "GR-ALT" },
                             { key: "BS", text: "BS" },
                             { key: "CS", text: "CS" },
                             { key: "BS4K", text: "BS4K" }
@@ -776,6 +778,7 @@ const Configurator: React.FC<{ uiState: UIState, uiStateEvents: EventEmitter }> 
                             // チャンネルタイプに応じてデフォルト値を設定
                             switch (newType) {
                                 case "GR":
+                                case "GR-ALT":
                                     setScanMinCh("13");
                                     setScanMaxCh("62");
                                     break;
