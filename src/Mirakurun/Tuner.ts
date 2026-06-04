@@ -59,16 +59,12 @@ export class Tuner {
             return false;
         }
 
-        // For background jobs, prefer local tuners.
-        // Only allow remote tuners when allowedTuners is explicitly set to remote-only.
+        // For background jobs, prefer local tuners but fall back to remote tuners.
         const localDevices = allDevices.filter(d => !d.isRemote);
-        const isExplicitRemoteOnly = channel.allowedTuners?.length > 0 && allDevices.every(d => d.isRemote);
-        const devices = localDevices.length > 0 ? localDevices
-                      : isExplicitRemoteOnly ? allDevices
-                      : [];
+        const devices = localDevices.length > 0 ? localDevices : allDevices;
 
         if (devices.length === 0) {
-            log.warn("readyForJob: no local tuners for background job on channel: %s (type=%s). To enable remote EPG, set allowedTuners to the remote tuner name(s).", channel.name, channel.type);
+            log.warn("readyForJob: no tuners for background job on channel: %s (type=%s)", channel.name, channel.type);
             return false;
         }
 
