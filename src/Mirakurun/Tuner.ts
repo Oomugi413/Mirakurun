@@ -59,6 +59,10 @@ export class Tuner {
             return false;
         }
 
+        if (this._isRemoteOnly(allDevices)) {
+            return true;
+        }
+
         // For background jobs, prefer local tuners but fall back to remote tuners.
         const localDevices = allDevices.filter(d => !d.isRemote);
         const devices = localDevices.length > 0 ? localDevices : allDevices;
@@ -194,35 +198,29 @@ export class Tuner {
     }
 
     async getServices(channel: ChannelItem, user: Partial<common.User> = {}): Promise<apid.Service[]> {
-        // If channel specifies allowedTuners and all are remote, fetch from remote API instead of streaming
-        if (channel.allowedTuners && channel.allowedTuners.length > 0) {
-            const devices = this._getDevicesByChannel(channel);
-            const allRemote = devices.length > 0 && devices.every(d => d.isRemote);
+        const devices = this._getDevicesByChannel(channel);
+        const remoteDevice = this._getRemoteOnlyDevice(devices);
 
-            if (allRemote) {
-                const remoteDevice = devices[0];
-                log.info("Fetching services for channel %s from remote Mirakurun %s:%d via API",
-                    channel.name, remoteDevice.config.remoteMirakurunHost, remoteDevice.config.remoteMirakurunPort || 40772);
+        if (remoteDevice !== null) {
+            log.info("Fetching services for channel %s from remote Mirakurun %s:%d via API",
+                channel.name, remoteDevice.config.remoteMirakurunHost, remoteDevice.config.remoteMirakurunPort || 40772);
 
-                const Client = require("../client").default;
-                const client = new Client();
-                client.host = remoteDevice.config.remoteMirakurunHost;
-                client.port = remoteDevice.config.remoteMirakurunPort || 40772;
-                client.userAgent = "Mirakurun (Remote Service Scanner)";
+            const Client = require("../client").default;
+            const client = new Client();
+            client.host = remoteDevice.config.remoteMirakurunHost;
+            client.port = remoteDevice.config.remoteMirakurunPort || 40772;
+            client.userAgent = "Mirakurun (Remote Service Scanner)";
 
-                try {
-                    // Query services by channel type and channel number
-                    // This works even if remote Mirakurun doesn't have this channel in channels.yml
-                    const services = await client.getServices({
-                        "channel.type": channel.type,
-                        "channel.channel": channel.channel
-                    });
-                    log.info("Fetched %d services for channel %s from remote Mirakurun", services.length, channel.name);
-                    return services;
-                } catch (err) {
-                    log.error("Failed to fetch services from remote Mirakurun for channel %s: %s", channel.name, err.message);
-                    throw err;
-                }
+            try {
+                const services = await client.getServices({
+                    "channel.type": common.getTuningChannelType(channel.type),
+                    "channel.channel": channel.channel
+                });
+                log.info("Fetched %d services for channel %s from remote Mirakurun", services.length, channel.name);
+                return services;
+            } catch (err) {
+                log.error("Failed to fetch services from remote Mirakurun for channel %s: %s", channel.name, err.message);
+                throw err;
             }
         }
 
@@ -451,19 +449,8 @@ export class Tuner {
         devices: TunerDevice[]
     ): Promise<boolean> {
         const setting = user.streamSetting;
-        const channel = setting.channel;
+        const remoteDevice = this._getRemoteOnlyDevice(devices);
 
-        // Only use remote data when allowedTuners is explicitly set to remote-only tuners.
-        // If allowedTuners is absent, or if any local tuner is present, prefer local.
-        if (!channel.allowedTuners || channel.allowedTuners.length === 0) {
-            return false;
-        }
-        const allRemote = devices.length > 0 && devices.every(d => d.isRemote);
-        if (!allRemote) {
-            return false;
-        }
-
-        const remoteDevice = devices.find(device => device.isRemote);
         if (remoteDevice && setting.networkId !== undefined && setting.parseEIT === true) {
             try {
                 const programs = await remoteDevice.getRemotePrograms({ networkId: setting.networkId });
@@ -480,6 +467,18 @@ export class Tuner {
         }
 
         return false;
+    }
+
+    private _getRemoteOnlyDevice(devices: TunerDevice[]): TunerDevice | null {
+        if (this._isRemoteOnly(devices) === false) {
+            return null;
+        }
+
+        return devices[0];
+    }
+
+    private _isRemoteOnly(devices: TunerDevice[]): boolean {
+        return devices.length > 0 && devices.every(device => device.isRemote);
     }
 
     /**
