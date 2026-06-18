@@ -38,6 +38,7 @@ const scrollState = {
         BS: -1,
         CS: -1,
         SKY: -1,
+        BS4K: -1,
     },
     top: -1,
 };
