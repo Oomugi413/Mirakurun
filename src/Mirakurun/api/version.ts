@@ -22,7 +22,7 @@ const pkg = require("../../../package.json");
 export const get: Operation = async (req, res) => {
     const version: apid.Version = {
         current: pkg.version,
-        latest: pkg.version
+        latest: await getLatestVersion()
     };
 
     api.responseJSON(res, version);
