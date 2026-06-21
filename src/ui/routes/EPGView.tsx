@@ -15,6 +15,7 @@
 */
 import * as React from "react";
 import { useState, useEffect, useMemo } from "react";
+import { detectAreaFromServices } from "../modules/constants";
 import { useParams } from "react-router-dom";
 import { Alignment, Button, Navbar, Tabs, Tab, HTMLSelect, Breadcrumbs } from "@blueprintjs/core";
 import { DateTime } from "luxon";
@@ -37,6 +38,35 @@ export const EPGView: React.FC = () => {
     const [channelType, setChannelType] = useLocalStorageState<ChannelType>("EPG.channelType", "GR");
     const [programId, setProgramId] = useState<number>(null);
     const [time, setTime] = useState<number>(null);
+    const [serviceVersion, setServiceVersion] = useState(0);
+
+    useEffect(() => {
+        const handler = () => setServiceVersion(v => v + 1);
+        state.on("services", handler);
+        return () => { state.off("services", handler); };
+    }, []);
+
+    // GR + NW系のチャンネルタイプをサービスリストからグルーピングし地域名を判定
+    const terrTypeOptions = useMemo(() => {
+        const typeServicesMap = new Map<string, typeof state.services>();
+        for (const s of state.services) {
+            const t = s.channel?.[0]?.type;
+            if (t === "GR" || t?.startsWith("NW")) {
+                if (!typeServicesMap.has(t)) typeServicesMap.set(t, []);
+                typeServicesMap.get(t)!.push(s);
+            }
+        }
+        const options: { value: string; label: string }[] = [];
+        // GR・NW系とも地域名が判定できた場合のみリストに追加（"地上"ラベルは廃止）
+        for (const t of ["GR", ...[...typeServicesMap.keys()].filter(k => k.startsWith("NW")).sort((a, b) => parseInt(a.slice(2)) - parseInt(b.slice(2)))]) {
+            if (!typeServicesMap.has(t)) continue;
+            const area = detectAreaFromServices(typeServicesMap.get(t)!);
+            if (area) {
+                options.push({ value: t, label: area });
+            }
+        }
+        return options;
+    }, [serviceVersion]);
     const globalServiceId = parseInt(params.globalServiceId, 10) || null;
     const programIdQuery = searchParams.get("programId");
     const typeQuery = searchParams.get("type");
@@ -163,7 +193,7 @@ export const EPGView: React.FC = () => {
                                 className="bp5-outlined"
                                 options={[
                                     { value: "ALL", label: "全波" },
-                                    { value: "GR", label: "地上" },
+                                    ...terrTypeOptions,
                                     { value: "BS" },
                                     { value: "CS" },
                                     { value: "SKY" },

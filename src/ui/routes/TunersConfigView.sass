@@ -31,14 +31,54 @@
         .bp5-dark &
           color: colors.$gray4
 
-  .types-checkboxes
+  .types-section
     display: flex
     flex-direction: column
     gap: 4px
-    margin-top: 6px
+
+  .types-base
+    display: flex
+    flex-wrap: wrap
+    gap: 2px 8px
 
     .bp5-control
       margin-bottom: 0
+
+  .types-nw-header
+    display: flex
+    align-items: center
+    gap: 4px
+    margin-top: 4px
+    font-size: 11px
+    font-weight: 600
+    color: colors.$gray1
+
+    .bp5-dark &
+      color: colors.$gray4
+
+    .bp5-button
+      min-height: 16px
+      font-size: 10px
+      padding: 0 4px
+
+  .types-nw-grid
+    display: flex
+    flex-wrap: wrap
+    gap: 0
+
+    .bp5-control.bp5-checkbox
+      flex: 0 0 36px
+      width: 36px
+      margin-bottom: 2px
+      font-size: 11px
+      padding-left: 20px
+      white-space: nowrap
+
+      .bp5-control-indicator
+        width: 14px
+        height: 14px
+        min-width: 14px
+        font-size: 12px
 
   .remote-mirakurun-group
     display: flex
