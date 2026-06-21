@@ -41,7 +41,7 @@ export default class TunerDevice extends EventEmitter {
     get command(): string;
     get pid(): number;
     get users(): User[];
-    get decoder(): string;
+    get decoder(): string | null;
     get isAvailable(): boolean;
     get isRemote(): boolean;
     get isFree(): boolean;

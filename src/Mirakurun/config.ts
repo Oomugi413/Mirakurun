@@ -120,7 +120,6 @@ export async function loadServer(): Promise<Server> {
         ];
     }
 
-
     // Docker
     if (IS_DOCKER) {
         config.path = "/var/run/mirakurun.sock";

@@ -193,7 +193,7 @@ async function getServices() {
     for (const serviceItem of serviceItems) {
         services.push({
             ...serviceItem.export(),
-            hasLogoData: await Service.isLogoDataExists(serviceItem.networkId, serviceItem.logoId)
+            hasLogoData: await Service.isLogoDataExists(serviceItem.networkId, serviceItem.serviceId, serviceItem.logoId)
         });
     }
 
