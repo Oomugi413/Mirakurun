@@ -108,7 +108,7 @@ export async function loadServer(): Promise<Server> {
             "https://mirakurun-secure-contexts-api.pages.dev"
         ];
     }
-    if (!config.allowPNA) {
+    if (typeof config.allowPNA !== "boolean") {
         config.allowPNA = true;
     }
     if (!config.tsplayEndpoint) {
@@ -119,12 +119,7 @@ export async function loadServer(): Promise<Server> {
             "https://mirakurun-secure-contexts-api.pages.dev"
         ];
     }
-    if (!config.allowPNA) {
-        config.allowPNA = true;
-    }
-    if (!config.tsplayEndpoint) {
-        config.tsplayEndpoint = "https://mirakurun-secure-contexts-api.pages.dev/tsplay/";
-    }
+
 
     // Docker
     if (IS_DOCKER) {

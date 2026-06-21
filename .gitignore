@@ -14,3 +14,4 @@ test.*
 local_config/*.yml
 local_data/*
 /bin/daemon
+.codegraph
