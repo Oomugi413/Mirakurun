@@ -244,7 +244,7 @@ export class Tuner {
             };
             let services: apid.Service[] = null;
 
-            setTimeout(() => tsFilter.close(), 20000);
+            setTimeout(() => tsFilter.close(), 30000);
 
             Promise.all<void>([
                 new Promise((resolve, reject) => {
