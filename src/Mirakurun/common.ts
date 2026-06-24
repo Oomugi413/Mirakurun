@@ -13,8 +13,9 @@
    See the License for the specific language governing permissions and
    limitations under the License.
 */
-import { Writable } from "stream";
+import rfdc from "rfdc";
 import ChannelItem from "./ChannelItem";
+import * as apid from "../../api";
 
 export interface User {
     readonly id: string;
@@ -45,59 +46,15 @@ export interface StreamInfo {
     };
 }
 
-export enum ChannelTypes {
-    "GR" = "GR",
-    "BS" = "BS",
-    "CS" = "CS",
-    "SKY" = "SKY",
-    "NW1" = "NW1",
-    "NW2" = "NW2",
-    "NW3" = "NW3",
-    "NW4" = "NW4",
-    "NW5" = "NW5",
-    "NW6" = "NW6",
-    "NW7" = "NW7",
-    "NW8" = "NW8",
-    "NW9" = "NW9",
-    "NW10" = "NW10",
-    "NW11" = "NW11",
-    "NW12" = "NW12",
-    "NW13" = "NW13",
-    "NW14" = "NW14",
-    "NW15" = "NW15",
-    "NW16" = "NW16",
-    "NW17" = "NW17",
-    "NW18" = "NW18",
-    "NW19" = "NW19",
-    "NW20" = "NW20",
-    "NW21" = "NW21",
-    "NW22" = "NW22",
-    "NW23" = "NW23",
-    "NW24" = "NW24",
-    "NW25" = "NW25",
-    "NW26" = "NW26",
-    "NW27" = "NW27",
-    "NW28" = "NW28",
-    "NW29" = "NW29",
-    "NW30" = "NW30",
-    "NW31" = "NW31",
-    "NW32" = "NW32",
-    "NW33" = "NW33",
-    "NW34" = "NW34",
-    "NW35" = "NW35",
-    "NW36" = "NW36",
-    "NW37" = "NW37",
-    "NW38" = "NW38",
-    "NW39" = "NW39",
-    "NW40" = "NW40"
+export const channelTypes: apid.ChannelType[] = ["GR", "BS", "CS", "SKY", "NW1", "NW2", "NW3", "NW4", "NW5", "NW6", "NW7", "NW8", "NW9", "NW10",
+    "NW11", "NW12", "NW13", "NW14", "NW15", "NW16", "NW17", "NW18", "NW19", "NW20",
+    "NW21", "NW22", "NW23", "NW24", "NW25", "NW26", "NW27", "NW28", "NW29", "NW30",
+    "NW31", "NW32", "NW33", "NW34", "NW35", "NW36", "NW37", "NW38", "NW39", "NW40"];
 
-}
-
-export type ChannelType = keyof typeof ChannelTypes;
+export const deepClone = rfdc();
 
 export function updateObject<T, U>(target: T, input: U): boolean;
 export function updateObject<T extends any[], U extends any[]>(target: T, input: U): boolean {
-
     let updated = false;
 
     for (const k in input) {
@@ -121,7 +78,6 @@ export function updateObject<T extends any[], U extends any[]>(target: T, input:
 }
 
 function updateArray<T extends any[], U extends any[]>(target: T, input: U): boolean {
-
     const length = target.length;
 
     if (length !== input.length) {
@@ -158,7 +114,6 @@ export function sleep(ms: number): Promise<void> {
 }
 
 export function getTimeFromMJD(buffer: Uint8Array | Buffer): number {
-
     const mjd = (buffer[0] << 8) | buffer[1];
     const h = (buffer[2] >> 4) * 10 + (buffer[2] & 0x0F);
     const i = (buffer[3] >> 4) * 10 + (buffer[3] & 0x0F);
@@ -168,10 +123,59 @@ export function getTimeFromMJD(buffer: Uint8Array | Buffer): number {
 }
 
 export function getTimeFromBCD24(buffer: Uint8Array | Buffer): number {
-
     let time = ((buffer[0] >> 4) * 10 + (buffer[0] & 0x0F)) * 3600;
     time += ((buffer[1] >> 4) * 10 + (buffer[1] & 0x0F)) * 60;
     time += (buffer[2] >> 4) * 10 + (buffer[2] & 0x0F);
 
     return time * 1000;
+}
+
+export function replaceCommandTemplate(template: string, vars: Record<string, string | number>): string {
+    return template.replace(/<([a-z0-9\-_\.]+)>/gi, (match, key) => {
+        return vars[key] !== undefined ? String(vars[key]) : "";
+    });
+}
+
+export function parseCommandForSpawn(cmdString: string): { command: string; args: string[] } {
+    let inQuote = false;
+    let quoteChar = "";
+    let current = "";
+    const parts: string[] = [];
+
+    // Parse the command string character by character
+    for (let i = 0; i < cmdString.length; i++) {
+        const char = cmdString[i];
+
+        if ((char === `"` || char === `'`) && (!inQuote || char === quoteChar)) {
+            // Toggle quote state if we encounter a quote character
+            inQuote = !inQuote;
+            quoteChar = inQuote ? char : "";
+        } else if (char === " " && !inQuote) {
+            // Space outside of quotes indicates a new part
+            if (current) {
+                parts.push(current);
+                current = "";
+            }
+        } else {
+            // Add character to the current part
+            current += char;
+        }
+    }
+
+    // Add the last part if there is one
+    if (current) {
+        parts.push(current);
+    }
+
+    if (parts.length === 0) {
+        throw new Error("Invalid command string");
+    }
+
+    // First part is the command, the rest are arguments
+    const result: { command: string; args: string[] } = {
+        command: parts[0],
+        args: parts.slice(1)
+    };
+
+    return result;
 }

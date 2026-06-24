@@ -1,16 +1,16 @@
 ARG ARCH=
-FROM ${ARCH}node:20.11.1-bullseye AS build
+FROM ${ARCH}node:24.16.0-bookworm AS build
 WORKDIR /app
 ENV DOCKER=YES NODE_ENV=production
 ADD . .
 RUN apt-get update && \
     apt-get upgrade -y && \
     apt-get install -y --no-install-recommends build-essential && \
-    npm install --production=false && \
+    npm ci --include=dev && \
     npm run build && \
-    npm install -g --unsafe-perm
+    npm ci --omit=dev
 
-FROM ${ARCH}node:20.11.1-bullseye-slim
+FROM ${ARCH}node:24.16.0-bookworm-slim
 WORKDIR /app
 RUN apt-get update && \
     apt-get upgrade -y && \

@@ -24,8 +24,8 @@ export enum LogLevel {
     "DEBUG" = 3
 }
 
-export const logLevel: LogLevel = LogLevel.INFO;
-export const maxLogHistory: number = 1000;
+export let logLevel: LogLevel = LogLevel.INFO;
+export let maxLogHistory: number = 1000;
 
 let offsetStr: string;
 let offsetMS = 0;
@@ -40,7 +40,6 @@ class LogEvent extends EventEmitter {
     logs: string[] = [];
 
     emit(ev: "data", level: LogLevel, log: string): boolean {
-
         if (logLevel < level) {
             return;
         }
@@ -51,19 +50,19 @@ class LogEvent extends EventEmitter {
         }
 
         switch (level) {
-        case LogLevel.DEBUG:
-            console.log(log);
-            break;
-        case LogLevel.INFO:
-            console.info(log);
-            break;
-        case LogLevel.WARN:
-            console.warn(log);
-            break;
-        case LogLevel.ERROR:
-        case LogLevel.FATAL:
-            console.error(log);
-            break;
+            case LogLevel.DEBUG:
+                console.log(log);
+                break;
+            case LogLevel.INFO:
+                console.info(log);
+                break;
+            case LogLevel.WARN:
+                console.warn(log);
+                break;
+            case LogLevel.ERROR:
+            case LogLevel.FATAL:
+                console.error(log);
+                break;
         }
 
         return super.emit(ev, log);
@@ -97,7 +96,6 @@ class LogEvent extends EventEmitter {
 export const event = new LogEvent();
 
 function getLogString(lvstr: string, msgs: any[]) {
-
     let isoStr: string;
 
     if (offsetStr) {

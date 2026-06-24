@@ -3,9 +3,9 @@
     {
       "name": "mirakurun-server",
       "script": "lib/server.js",
-      "node_args" : "-r source-map-support/register",
-      "error_file": "./local_data/mirakurun.stderr.log",
-      "out_file": "./local_data/mirakurun.stdout.log",
+      "node_args" : "--max-semi-space-size=64 -r source-map-support/register",
+      "error_file": "/usr/local/var/log/mirakurun.stderr.log",
+      "out_file": "/usr/local/var/log/mirakurun.stdout.log",
       "merge_logs": true,
       "pid_file": "./local_data/mirakurun.pid",
       "exec_mode": "fork",

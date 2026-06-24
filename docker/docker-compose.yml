@@ -1,42 +1,68 @@
-version: "3.7"
 services:
   mirakurun:
+    # `latest` can be changed to fix the version
+    # `latest` の部分を編集するとバージョンを固定できます
+    # available tags: https://hub.docker.com/r/chinachu/mirakurun/tags
+    image: chinachu/mirakurun:${MIRAKURUN_IMAGE_TAG:-latest}
+
+    # 環境変数
+    environment:
+      TZ: Asia/Tokyo
+      # set to "1" to disable pcscd
+      # pcscd を無効にする場合は "1"
+      DISABLE_PCSCD: "${DISABLE_PCSCD:-0}"
+      # set to "1" to disable fetch/build the B25 test decoder command
+      # B25 テストコマンドの取得とビルドを無効にする場合は "1"
+      DISABLE_B25_TEST: "${DISABLE_B25_TEST:-0}"
+      # comment out below if you commented out `network_mode: host`
+      # `network_mode: host` をコメントアウトする場合はここもコメントアウト
+      DOCKER_NETWORK: host
+      # set hostname if accesing by hostname (other than IP address)
+      # ブラウザから IP アドレス以外でアクセスする場合はホスト名を設定
+      #hostname: localhost
+      # --
+      # for debug
+      #LOG_LEVEL: "3"
+      #DEBUG: "true"
+
+    # comment out `devices:` if you commented out all devices
+    # `devices` を全てコメントアウトした場合は `devices:` もコメントアウト
+    #devices:
+      # if you use card readers
+      # カードリーダーを使う場合
+      #- /dev/bus:/dev/bus
+
+      # if use DVB devices
+      # DVB チューナーを使う場合
+      #- /dev/dvb:/dev/dvb
+
+    volumes:
+      # you can change to any location if you want.
+      - /opt/mirakurun/run:/var/run
+      - /opt/mirakurun/opt:/opt
+      - /opt/mirakurun/config:/app-config
+      - /opt/mirakurun/data:/app-data
+
+      # if use host's pcscd (DISABLE_PCSCD=1)
+      # ホストの pcscd を使う場合 (DISABLE_PCSCD=1)
+      #- /var/run/pcscd/pcscd.comm:/var/run/pcscd/pcscd.comm
+
+      # add all devices (for development purposes)
+      # 全てのデバイスを追加 (開発用)
+      - /dev:/dev
+
+    container_name: mirakurun
     build:
       context: ../
-      dockerfile: docker/Dockerfile
-    image: chinachu/mirakurun:latest
-    container_name: mirakurun
+      dockerfile: docker/${DOCKERFILE:-Dockerfile}
+    network_mode: host
     cap_add:
       - SYS_ADMIN
       - SYS_NICE
-    environment:
-      TZ: Asia/Tokyo
-      DOCKER_NETWORK: host
-      # LOG_LEVEL: "3"
-      # DEBUG: "true"
-    network_mode: host
-    devices:
-      - /dev/bus:/dev/bus
-      - /dev/dvb:/dev/dvb
-    volumes:
-      # ** CAUTION **
-      # (default) `/usr/local/mirakurun/*` has been moved to `/opt/mirakurun/*`
-      # try:
-      #   sudo mv -vf /usr/local/mirakurun /opt/mirakurun
-      #   sudo mkdir -p /opt/mirakurun/run /opt/mirakurun/opt /opt/mirakurun/config /opt/mirakurun/data
-      # you can change to any location if required.
-      - type: bind
-        source: /opt/mirakurun/run/
-        target: /var/run/
-      - type: bind
-        source: /opt/mirakurun/opt/
-        target: /opt/
-      - type: bind
-        source: /opt/mirakurun/config/
-        target: /app-config/
-      - type: bind
-        source: /opt/mirakurun/data/
-        target: /app-data/
+    device_cgroup_rules:
+      - 'c *:* rmw'
+    tmpfs:
+      - /tmp
     restart: always
     logging:
       driver: json-file

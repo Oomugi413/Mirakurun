@@ -22,8 +22,12 @@ import { createHash } from "crypto";
 
 if (process.platform === "linux") {
     if (process.getuid() === 0) {
-        execSync(`renice -n -10 -p ${ process.pid }`);
-        execSync(`ionice -c 1 -n 7 -p ${ process.pid }`);
+        try {
+            execSync(`renice -n -10 -p ${ process.pid }`);
+            execSync(`ionice -c 1 -n 7 -p ${ process.pid }`);
+        } catch (e) {
+            console.warn("error on modify nice: " + (e as Error).message);
+        }
     } else {
         console.warn("running in not root!");
     }
@@ -39,6 +43,10 @@ process.on("unhandledRejection", err => {
     ++status.errorCount.unhandledRejection;
     console.error(err);
 });
+
+function setEnv(name: string, value: string) {
+    process.env[name] = process.env[name] || value;
+}
 const configDir = path.join(process.cwd(), "local_config");
 const dataDir = path.join(process.cwd(), "local_data");
 
@@ -55,6 +63,7 @@ setEnv("LOGO_DATA_DIR_PATH", path.join(dataDir, "logo-data"));
 import _ from "./Mirakurun/_";
 import status from "./Mirakurun/status";
 import Event from "./Mirakurun/Event";
+import Job from "./Mirakurun/Job";
 import Tuner from "./Mirakurun/Tuner";
 import Channel from "./Mirakurun/Channel";
 import Service from "./Mirakurun/Service";
@@ -63,34 +72,34 @@ import Server from "./Mirakurun/Server";
 import * as config from "./Mirakurun/config";
 import * as log from "./Mirakurun/log";
 
-_.config.server = config.loadServer();
-_.config.channels = config.loadChannels();
-_.configIntegrity.channels = createHash("sha256")
-    .update(JSON.stringify(_.config.channels))
-    .digest("base64");
-_.config.tuners = config.loadTuners();
+(async function top() {
+    _.config.server = await config.loadServer();
+    _.config.channels = await config.loadChannels();
+    _.configIntegrity.channels = createHash("sha256").update(JSON.stringify(_.config.channels)).digest("base64");
+    _.config.tuners = await config.loadTuners();
 
-if (typeof _.config.server.logLevel === "number") {
-    (<any> log).logLevel = _.config.server.logLevel;
-}
-if (typeof _.config.server.maxLogHistory === "number") {
-    (<any> log).maxLogHistory = _.config.server.maxLogHistory;
-}
+    if (typeof _.config.server.logLevel === "number") {
+        (<any> log).logLevel = _.config.server.logLevel;
+    }
+    if (typeof _.config.server.maxLogHistory === "number") {
+        (<any> log).maxLogHistory = _.config.server.maxLogHistory;
+    }
 
-_.event = new Event();
-_.tuner = new Tuner();
-_.channel = new Channel();
-_.service = new Service();
-_.program = new Program();
-_.server = new Server();
+    _.event = new Event();
+    _.job = new Job();
+    _.tuner = new Tuner();
+    _.channel = new Channel();
+    _.service = new Service();
+    _.program = new Program();
+    _.server = new Server();
 
-if (process.env.SETUP === "true") {
-    log.info("setup is done.");
-    process.exit(0);
-}
+    await _.service.load();
+    await _.program.load();
 
-_.server.init();
+    if (process.env.SETUP === "true") {
+        log.info("setup is done.");
+        process.exit(0);
+    }
 
-function setEnv(name: string, value: string) {
-    process.env[name] = process.env[name] || value;
-}
+    _.server.init();
+})();

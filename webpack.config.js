@@ -23,14 +23,25 @@ module.exports = {
                     {
                         loader: "ts-loader",
                         options: {
-                            configFile: "tsconfig.webpack.json"
+                            configFile: `${__dirname}/src/ui/tsconfig.json`
                         }
                     }
                 ]
             },
             {
-                test: /\.css$/,
-                use: ["style-loader", "css-loader"]
+                test: /\.s?[ac]ss$/,
+                use: ["style-loader", "css-loader", "sass-loader"]
+            },
+            {
+                test: /\.(png|woff|woff2|eot|ttf)$/,
+                type: "asset/resource",
+                generator: {
+                    filename: "assets/[hash][ext]"
+                }
+            },
+            {
+                test: /\.svg$/,
+                type: "asset/inline"
             }
         ]
     },
@@ -52,7 +63,7 @@ module.exports = {
             Buffer: ["buffer", "Buffer"]
         }),
         new webpack.ProvidePlugin({
-            process: "process/browser"
+            process: "process/browser.js"
         })
     ],
     optimization: {

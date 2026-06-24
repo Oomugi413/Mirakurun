@@ -15,27 +15,39 @@
 */
 import * as common from "./common";
 import * as log from "./log";
+import * as apid from "../../api";
 import _ from "./_";
 import status from "./status";
-import queue from "./queue";
 import ChannelItem from "./ChannelItem";
+import { JobItem } from "./Job";
 
-export default class Channel {
-
+export class Channel {
     private _items: ChannelItem[] = [];
-    private _epgGatheringInterval: number = _.config.server.epgGatheringInterval || 1000 * 60 * 30; // 30 mins
-    private _epgGatheringIntervalGR: number = _.config.server.epgGatheringIntervalGR || this._epgGatheringInterval;
-    private _epgGatheringIntervalBS: number = _.config.server.epgGatheringIntervalBS || this._epgGatheringInterval;
-    private _epgGatheringIntervalCS: number = _.config.server.epgGatheringIntervalCS || this._epgGatheringInterval;
-    private _epgGatheringIntervalSKY: number = _.config.server.epgGatheringIntervalSKY || this._epgGatheringInterval;
-    private _epgGatheringIntervalNW: number = _.config.server.epgGatheringIntervalNW || this._epgGatheringInterval;
+    private _startup: boolean = true;
 
     constructor() {
-
         this._load();
 
         if (_.config.server.disableEITParsing !== true) {
-            setTimeout(this._epgGatherer.bind(this), 1000 * 60);
+            const epgJob: JobItem = {
+                key: "EPG.Gatherer",
+                name: "EPG Gatherer",
+                fn: () => this._epgGatherer()
+            };
+
+            _.job.add({
+                ...epgJob,
+                readyFn: async () => {
+                    await common.sleep(1000 * 60);
+                    return true;
+                }
+            });
+
+            _.job.addSchedule({
+                key: epgJob.key,
+                schedule: _.config.server.epgGatheringJobSchedule || "20,50 * * * *",
+                job: epgJob
+            });
         }
     }
 
@@ -44,14 +56,12 @@ export default class Channel {
     }
 
     add(item: ChannelItem): void {
-
         if (this.get(item.type, item.channel) === null) {
             this._items.push(item);
         }
     }
 
-    get(type: common.ChannelType, channel: string): ChannelItem {
-
+    get(type: apid.ChannelType, channel: string): ChannelItem {
         const l = this._items.length;
         for (let i = 0; i < l; i++) {
             if (this._items[i].channel === channel && this._items[i].type === type) {
@@ -62,8 +72,7 @@ export default class Channel {
         return null;
     }
 
-    findByType(type: common.ChannelType): ChannelItem[] {
-
+    findByType(type: apid.ChannelType): ChannelItem[] {
         const items = [];
 
         const l = this._items.length;
@@ -77,13 +86,11 @@ export default class Channel {
     }
 
     private _load(): void {
-
         log.debug("loading channels...");
 
         const channels = _.config.channels;
 
         channels.forEach((channel, i) => {
-
             if (typeof channel.name !== "string") {
                 log.error("invalid type of property `name` in channel#%d configuration", i);
                 return;
@@ -99,31 +106,6 @@ export default class Channel {
                 return;
             }
 
-            if (channel.satelite && !channel.satellite) {
-                log.warn("renaming deprecated property name `satelite` to `satellite` in channel#%d (%s) configuration", i, channel.name);
-                (<any> channel).satellite = channel.satelite;
-            }
-
-            if (channel.satellite && typeof channel.satellite !== "string") {
-                log.error("invalid type of property `satellite` in channel#%d (%s) configuration", i, channel.name);
-                return;
-            }
-
-            if (channel.space && typeof channel.space !== "number") {
-                log.error("invalid type of property `space` in channel#%d (%s) configuration", i, channel.name);
-                return;
-            }
-
-            if (channel.freq !== undefined && typeof channel.freq !== "number") {
-                log.error("invalid type of property `freq` in channel#%d (%s) configuration", i, channel.name);
-                return;
-            }
-
-            if (channel.polarity && channel.polarity !== "H" && channel.polarity !== "V") {
-                log.error("invalid type of property `polarity` in channel#%d (%s) configuration", i, channel.name);
-                return;
-            }
-
             if (channel.serviceId && typeof channel.serviceId !== "number") {
                 log.error("invalid type of property `serviceId` in channel#%d (%s) configuration", i, channel.name);
                 return;
@@ -134,6 +116,48 @@ export default class Channel {
                 return;
             }
 
+            if (channel.commandVars && typeof channel.commandVars !== "object") {
+                log.error("invalid type of property `commandVars` in channel#%d (%s) configuration", i, channel.name);
+                return;
+            }
+            if (!channel.commandVars) {
+                channel.commandVars = {};
+            }
+            if (channel.satelite && !channel.satellite) {
+                log.warn("renaming deprecated property name `satelite` to `satellite` in channel#%d (%s) configuration", i, channel.name);
+                (<any> channel).satellite = channel.satelite;
+            }
+            if (channel.satellite) {
+                // deprecated but not planned to remove (soft migration)
+                if (!channel.commandVars.satellite) {
+                    channel.commandVars.satellite = channel.satellite;
+                }
+            }
+            if (channel.space) {
+                // deprecated but not planned to remove (soft migration)
+                if (!channel.commandVars.space) {
+                    channel.commandVars.space = channel.space;
+                }
+            }
+            if (channel.freq) {
+                // deprecated but not planned to remove (soft migration)
+                if (!channel.commandVars.freq) {
+                    channel.commandVars.freq = channel.freq;
+                }
+            }
+            if (channel.polarity) {
+                // deprecated but not planned to remove (soft migration)
+                if (!channel.commandVars.polarity) {
+                    channel.commandVars.polarity = channel.polarity;
+                }
+            }
+            for (const key in channel.commandVars) {
+                if (typeof channel.commandVars[key] !== "number" && typeof channel.commandVars[key] !== "string") {
+                    log.error("invalid type of property `commandVars.%s` in channel#%d (%s) configuration", key, i, channel.name);
+                    delete channel.commandVars[key];
+                }
+            }
+
             if (channel.isDisabled === true) {
                 return;
             }
@@ -142,14 +166,8 @@ export default class Channel {
                 return;
             }
 
-            const pre = this.get(channel.type, channel.channel);
-            if (pre) {
+            if (!this.get(channel.type, channel.channel)) {
                 if (channel.serviceId) {
-                    pre.addService(channel.serviceId);
-                }
-            } else {
-                const arr = ["BS", "CS", "SKY"];
-                if (arr.includes(channel.type)) {
                     (<any> channel).name = `${channel.type}:${channel.channel}`;
                 }
                 this.add(new ChannelItem(channel));
@@ -157,92 +175,70 @@ export default class Channel {
         });
     }
 
-    private _epgGatherer(): void {
-        const nw_type_list = ["NW1", "NW2", "NW3", "NW4", "NW5", "NW6", "NW7", "NW8", "NW9", "NW10",
-            "NW11", "NW12", "NW13", "NW14", "NW15", "NW16", "NW17", "NW18", "NW19", "NW20",
-            "NW21", "NW22", "NW23", "NW24", "NW25", "NW26", "NW27", "NW28", "NW29", "NW30",
-            "NW31", "NW32", "NW33", "NW34", "NW35", "NW36", "NW37", "NW38", "NW39", "NW40"];
+    private async _epgGatherer(): Promise<void> {
+        const startup = this._startup;
+        if (this._startup === true) {
+            this._startup = false;
+        }
 
-        queue.add(async () => {
+        const networkIds = [...new Set(_.service.items.map(item => item.networkId))];
 
-            const networkIds = [...new Set(_.service.items.map(item => item.networkId))];
+        for (const networkId of networkIds) {
+            const services = _.service.findByNetworkId(networkId);
+            if (services.length === 0) {
+                continue;
+            }
+            const service = services[0];
 
-            networkIds.forEach(networkId => {
+            _.job.add({
+                key: `EPG.Gather.NID.${networkId}`,
+                name: `EPG Gather Network#${networkId}`,
+                isRerunnable: true,
+                fn: async () => {
+                    log.info("Network#%d EPG gathering has started", networkId);
+                    try {
+                        await _.tuner.getEPG(service.channel);
+                        log.info("Network#%d EPG gathering has finished", networkId);
+                    } catch (e) {
+                        log.warn("Network#%d EPG gathering has failed [%s]", networkId, e);
+                        throw new Error("EPG gathering failed");
+                    }
+                },
+                readyFn: async () => {
+                    await common.sleep(100);
 
-                const services = _.service.findByNetworkId(networkId);
-
-                if (services.length === 0) {
-                    return;
-                }
-                const service = services[0];
-
-                queue.add(async () => {
-
-                    for (const ch of service.channel) {
-                        if (service.epgReady === true) {
-                            const now = Date.now();
-                            // EPG取得間隔優先順位 GR > BS > CS > SKY > NW > 全体設定
-                            if (ch.type === "GR" && now - service.epgUpdatedAt < this._epgGatheringIntervalGR) {
-                                log.info("Network#%d EPG gathering has skipped by `epgGatheringIntervalGR`", networkId);
-                                return;
-                            }
-                            if (ch.type === "BS" && now - service.epgUpdatedAt < this._epgGatheringIntervalBS) {
-                                log.info("Network#%d EPG gathering has skipped by `epgGatheringIntervalBS`", networkId);
-                                return;
-                            }
-                            if (ch.type === "CS" && now - service.epgUpdatedAt < this._epgGatheringIntervalCS) {
-                                log.info("Network#%d EPG gathering has skipped by `epgGatheringIntervalCS`", networkId);
-                                return;
-                            }
-                            if (ch.type === "SKY" && now - service.epgUpdatedAt < this._epgGatheringIntervalSKY) {
-                                log.info("Network#%d EPG gathering has skipped by `epgGatheringIntervalSKY`", networkId);
-                                return;
-                            }
-                            if (nw_type_list.indexOf(ch.type) !== -1) {
-                                if (now - service.epgUpdatedAt < this._epgGatheringIntervalNW) {
-                                    log.info("Network#%d EPG gathering has skipped by `epgGatheringIntervalNW`", networkId);
-                                    return;
+                    if (status.epg[networkId] === true) {
+                        log.info("Network#%d EPG gathering is already in progress on another stream", networkId);
+                        return false;
+                    }
+                    if (service.epgReady === true) {
+                        const now = Date.now();
+                        if (startup && now - service.epgUpdatedAt < 1000 * 60 * 10) { // 10 mins
+                            log.info("Network#%d EPG gathering has skipped because EPG is already up to date (in 10 mins)", networkId);
+                            return false;
+                        }
+                        if (now - service.epgUpdatedAt > 1000 * 60 * 60 * 12) { // 12 hours
+                            log.info("Network#%d EPG gathering is resuming forcibly because reached maximum pause time (12 hours)", networkId);
+                            service.epgReady = false;
+                        } else {
+                            const currentPrograms = _.program.findByNetworkIdAndTime(networkId, now)
+                                .filter(program => !!program.name && program.name !== "放送休止");
+                            if (currentPrograms.length === 0) {
+                                const networkPrograms = _.program.findByNetworkId(networkId);
+                                if (networkPrograms.length > 0) {
+                                    log.info("Network#%d EPG gathering has skipped because broadcast is off", networkId);
+                                    return false;
                                 }
-                            }
-                            if (now - service.epgUpdatedAt > 1000 * 60 * 60 * 6) { // 6 hours
-                                log.info("Network#%d EPG gathering is resuming forcibly because reached maximum pause time", networkId);
                                 service.epgReady = false;
-                            } else {
-                                const currentPrograms = _.program.findByNetworkIdAndTime(networkId, now)
-                                    .filter(program => !!program.name && program.name !== "放送休止");
-                                if (currentPrograms.length === 0) {
-                                    const networkPrograms = _.program.findByNetworkId(networkId);
-                                    if (networkPrograms.length > 0) {
-                                        log.info("Network#%d EPG gathering has skipped because broadcast is off", networkId);
-                                        return;
-                                    }
-                                    service.epgReady = false;
-                                }
                             }
-                        }
-
-                        if (status.epg[networkId] === true) {
-                            log.info("Network#%d EPG gathering is already in progress on another stream", networkId);
-                            return;
-                        }
-
-                        log.info("Network#%d EPG gathering has started", networkId);
-
-                        try {
-                            await _.tuner.getEPG(ch);
-                            log.info("Network#%d EPG gathering has finished", networkId);
-                        } catch (e) {
-                            log.warn("Network#%d EPG gathering has failed [%s]", networkId, e);
                         }
                     }
-                });
 
-                log.debug("Network#%d EPG gathering has queued", networkId);
+                    return _.tuner.readyForJob(service.channel);
+                }
             });
-
-            queue.add(async () => {
-                setTimeout(this._epgGatherer.bind(this), this._epgGatheringInterval);
-            });
-        });
+        }
     }
 }
+
+export default Channel;

@@ -14,81 +14,56 @@
    limitations under the License.
 */
 import * as os from "os";
+import { promisify } from "util";
+import { exec } from "child_process";
 import { Validator } from "ip-num/Validator";
 import { IPv4, IPv6 } from "ip-num/IPNumber";
 import { IPv4Prefix, IPv6Prefix } from "ip-num/Prefix";
 import { IPv4CidrRange, IPv6CidrRange } from "ip-num/IPRange";
 import _ from "./_";
 
-export function getIPv4AddressesForListen(): string[] {
+const asyncExec = promisify(exec);
 
+export function getIPv4AddressesForListen(): string[] {
     const addresses = [];
 
     const interfaces = os.networkInterfaces();
 
-    if (!_.config.server.allowListenAllInterface) {
-        Object.keys(interfaces).forEach(k => {
-            interfaces[k]
-                .filter(a => {
-                    return (
-                        a.family === "IPv4" &&
-                        a.internal === false &&
-                        isPermittedIPAddress(a.address) === true
-                    );
-                })
-                .forEach(a => addresses.push(a.address));
-        });
-    } else {
-        Object.keys(interfaces).forEach(k => {
-            interfaces[k]
-                .filter(a => {
-                    return (
-                        a.family === "IPv4"
-                    );
-                })
-                .forEach(a => addresses.push(a.address));
-        });
-    }
+    Object.keys(interfaces).forEach(k => {
+        interfaces[k]
+            .filter(a => {
+                return (
+                    a.family === "IPv4" &&
+                    a.internal === false &&
+                    isPermittedIPAddress(a.address) === true
+                );
+            })
+            .forEach(a => addresses.push(a.address));
+    });
 
     return addresses;
 }
 
 export function getIPv6AddressesForListen(): string[] {
-
     const addresses = [];
 
     const interfaces = os.networkInterfaces();
-    if (!_.config.server.allowListenAllInterface) {
-        Object.keys(interfaces).forEach(k => {
-            interfaces[k]
-                .filter(a => {
-                    return (
-                        a.family === "IPv6" &&
-                        a.internal === false &&
-                        isPermittedIPAddress(a.address) === true
-                    );
-                })
-                .forEach(a => addresses.push(a.address + "%" + k));
+    Object.keys(interfaces).forEach(k => {
+        interfaces[k]
+            .filter(a => {
+                return (
+                    a.family === "IPv6" &&
+                    a.internal === false &&
+                    isPermittedIPAddress(a.address) === true
+                );
+            })
+            .forEach(a => addresses.push(a.address + "%" + k));
         });
-    } else {
-        Object.keys(interfaces).forEach(k => {
-            interfaces[k]
-                .filter(a => {
-                    return (
-                        a.family === "IPv6"
-                    );
-                })
-                .forEach(a => addresses.push(a.address + "%" + k));
-        });
-    }
 
     return addresses;
 }
 
 export function isPermittedIPAddress(addr: string): boolean {
-
-    addr = addr.replace("[", "").replace("]", "");
-    addr = addr.split("%")[0];
     const [isIPv4] = Validator.isValidIPv4String(addr);
     if (isIPv4) {
         const ipv4 = new IPv4CidrRange(new IPv4(addr), new IPv4Prefix(32));
@@ -113,7 +88,6 @@ export function isPermittedIPAddress(addr: string): boolean {
 }
 
 export function isPermittedHost(url: string, allowedHostname?: string): boolean {
-
     const u = new URL(url);
 
     if (u.hostname === "localhost" || u.hostname === allowedHostname || isPermittedIPAddress(u.hostname) === true) {
@@ -121,4 +95,11 @@ export function isPermittedHost(url: string, allowedHostname?: string): boolean 
     }
 
     return false;
+}
+
+export async function getLatestVersion(): Promise<string> {
+    const { stdout } = await asyncExec("npm view mirakurun version", { encoding: "utf8" });
+    const latestVersion = stdout.trim();
+
+    return latestVersion;
 }

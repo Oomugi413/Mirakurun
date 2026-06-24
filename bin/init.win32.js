@@ -27,6 +27,7 @@ const proc = require("../processes.json").apps[0];
 const configDir = path.join(process.cwd(), "local_config");
 const dataDir = path.join(process.cwd(), "local_data");
 
+
 for (const key in proc.env) {
     setEnv(key, proc.env[key]);
 }

@@ -17,14 +17,15 @@ import * as net from "net";
 import * as http from "http";
 import RPCServer, { Socket } from "jsonrpc2-ws/lib/server";
 import * as log from "./log";
+import * as apid from "../../api";
 import _ from "./_";
 import status from "./status";
 import Event from "./Event";
-import { EventMessage } from "./Event";
+import { Service } from "./Service";
 import { event as logEvent } from "./log";
 import { isPermittedHost, isPermittedIPAddress } from "./system";
-import { getStatus } from "./api/status";
 import { sleep } from "./common";
+import { getStatus } from "./api/status";
 
 export interface JoinParams {
     rooms: string[];
@@ -46,7 +47,6 @@ export interface NotifyParams<T> {
  * @experimental
  */
 export function createRPCServer(server: http.Server): RPCServer {
-
     const rpc = new RPCServer({
         pingInterval: 1000 * 30,
         wss: {
@@ -64,20 +64,24 @@ export function createRPCServer(server: http.Server): RPCServer {
     rpc.methods.set("join", onJoin);
     rpc.methods.set("leave", onLeave);
     rpc.methods.set("getStatus", getStatus);
+    rpc.methods.set("getServices", getServices);
     rpc.methods.set("getTuners", getTuners);
+    rpc.methods.set("getJobs", getJobs);
+    rpc.methods.set("getJobSchedules", getJobSchedules);
 
     return rpc;
 }
 
 const _notifierListeners = new Map<Set<RPCServer>, [Function, Function]>();
 export function initRPCNotifier(rpcs: Set<RPCServer>): void {
-
     const eventsNMDict = {
-        program: new NotifyManager<EventMessage>("events:program", "events", rpcs),
-        service: new NotifyManager<EventMessage>("events:service", "events", rpcs),
-        tuner: new NotifyManager<EventMessage>("events:tuner", "events", rpcs)
+        program: new NotifyManager<apid.Event>("events:program", "events", rpcs),
+        service: new NotifyManager<apid.Event>("events:service", "events", rpcs),
+        tuner: new NotifyManager<apid.Event>("events:tuner", "events", rpcs),
+        job: new NotifyManager<apid.Event>("events:job", "events", rpcs),
+        job_schedule: new NotifyManager<apid.Event>("events:job_schedule", "events", rpcs)
     };
-    function onEventListener(event: EventMessage) {
+    function onEventListener(event: apid.Event) {
         eventsNMDict[event.resource].notify(event);
     }
 
@@ -105,7 +109,7 @@ class NotifyManager<T> {
             return;
         }
         this._active = true;
-        await sleep(100);
+        await sleep(8);
         if (status.rpcCount > 0) {
             const params: NotifyParams<T> = {
                 array: [...this._items.values()]
@@ -122,20 +126,17 @@ class NotifyManager<T> {
 }
 
 function serverOnUpgrade(this: RPCServer["wss"], req: http.IncomingMessage, socket: net.Socket, head: Buffer): void {
+    if (req.socket.remoteAddress && !isPermittedIPAddress(req.socket.remoteAddress)) {
+        socket.write("HTTP/1.1 403 Forbidden\r\n\r\n");
+        socket.destroy();
+        return;
+    }
 
-    if (!_.config.server.allowListenAllInterface) {
-        if (req.socket.remoteAddress && !isPermittedIPAddress(req.socket.remoteAddress)) {
+    if (req.headers.origin !== undefined) {
+        if (!isPermittedHost(req.headers.origin, _.config.server.hostname) && !_.config.server.allowOrigins.includes(req.headers.origin)) {
             socket.write("HTTP/1.1 403 Forbidden\r\n\r\n");
             socket.destroy();
             return;
-        }
-
-        if (req.headers.origin !== undefined) {
-            if (!isPermittedHost(req.headers.origin, _.config.server.hostname)) {
-                socket.write("HTTP/1.1 403 Forbidden\r\n\r\n");
-                socket.destroy();
-                return;
-            }
         }
     }
 
@@ -183,6 +184,30 @@ function onLeave(socket: Socket, params: JoinParams) {
     }
 }
 
+async function getServices() {
+    const serviceItems = [..._.service.items]; // shallow copy
+    serviceItems.sort((a, b) => a.getOrder() - b.getOrder());
+
+    const services: apid.Service[] = [];
+
+    for (const serviceItem of serviceItems) {
+        services.push({
+            ...serviceItem.export(),
+            hasLogoData: await Service.isLogoDataExists(serviceItem.networkId, serviceItem.serviceId, serviceItem.logoId)
+        });
+    }
+
+    return services;
+}
+
 function getTuners() {
     return _.tuner.devices;
+}
+
+function getJobs() {
+    return _.job.jobs;
+}
+
+function getJobSchedules() {
+    return _.job.schedules;
 }

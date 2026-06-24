@@ -15,15 +15,18 @@
 */
 import { Operation } from "express-openapi";
 import * as api from "../api";
-import * as db from "../db";
+import * as apid from "../../../api";
 import _ from "../_";
 
 export const get: Operation = (req, res) => {
-
-    let programs: db.Program[];
+    let programs: apid.Program[];
 
     // tslint:disable-next-line:prefer-conditional-expression
-    programs = Object.keys(req.query).length !== 0 ? _.program.findByQuery(req.query) : Array.from(_.program.itemMap.values());
+    if (Object.keys(req.query).length !== 0) {
+        programs = _.program.findByQuery(req.query);
+    } else {
+        programs = Array.from(_.program.itemMap.values());
+    }
 
     api.responseJSON(res, programs);
 };
