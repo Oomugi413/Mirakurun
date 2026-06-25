@@ -29,6 +29,8 @@ import TSFilter from "./TSFilter";
 import Client, { ProgramsQuery } from "../client";
 import { TSHandoffBuffer, TSHandoffOptions, TSHandoffProbe } from "./TSHandoff";
 
+const DEFAULT_FAILURE_COOLDOWN_SECONDS = 2;
+
 interface User extends common.User {
     _stream?: TSFilter | TSHandoffBuffer;
 }
@@ -64,6 +66,8 @@ export default class TunerDevice extends EventEmitter {
     private _exited = false;
     private _closing = false;
     private _lastDevicePathReady: boolean = null;
+    private _cooldownUntil = 0;
+    private _lastCooldownLogUntil = 0;
 
     constructor(private _index: number, private _config: apid.ConfigTunersItem) {
         super();
@@ -172,6 +176,16 @@ export default class TunerDevice extends EventEmitter {
             return false;
         }
         if (channel && this._config.types.includes(channel.type) === false) {
+            return false;
+        }
+        if (this._cooldownUntil > Date.now()) {
+            if (this._lastCooldownLogUntil !== this._cooldownUntil) {
+                log.warn(
+                    "TunerDevice#%d skipped because it is cooling down for %.1f more seconds",
+                    this._index, (this._cooldownUntil - Date.now()) / 1000
+                );
+                this._lastCooldownLogUntil = this._cooldownUntil;
+            }
             return false;
         }
 
@@ -497,6 +511,7 @@ export default class TunerDevice extends EventEmitter {
                 this._index, code, signal, this._process.pid
             );
 
+            this._startCooldownIfNeeded(code, signal);
             this._end();
             setTimeout(this._release.bind(this), this._config.dvbDevicePath ? 1000 : 100);
         });
@@ -538,6 +553,22 @@ export default class TunerDevice extends EventEmitter {
         }
 
         return ready;
+    }
+
+    private _startCooldownIfNeeded(code: number, signal: NodeJS.Signals | null): void {
+        const cooldownSeconds = this._config.cooldownSeconds ?? DEFAULT_FAILURE_COOLDOWN_SECONDS;
+        if (this._closing === true || cooldownSeconds <= 0) {
+            return;
+        }
+        if (code === 0 && signal === null) {
+            return;
+        }
+
+        this._cooldownUntil = Date.now() + cooldownSeconds * 1000;
+        log.warn(
+            "TunerDevice#%d cooling down for %d seconds after command failure",
+            this._index, cooldownSeconds
+        );
     }
 
     private _end(): void {

@@ -99,6 +99,8 @@
   dvbDevicePath: /dev/dvb/adapter/dvr/path # String
   # 任意の事前確認パス。未指定時は dvbDevicePath が設定されていればそれを確認します。
   checkDevicePath: /dev/px4video0 # String
+  # コマンドが失敗終了した後に、このチューナーをスキップする秒数。デフォルトは 2。
+  cooldownSeconds: 2 # Integer
   # リモートMirakurunとの多重化用
   remoteMirakurunHost: 192.168.x.x # String
   remoteMirakurunPort: 40772 # Integer
@@ -120,6 +122,10 @@
 #### checkDevicePath
 
 このチューナーを開始する前に存在確認するデバイスパスを指定します。パスが存在しない場合、Mirakurun はこのチューナーをスキップして次の一致するチューナーを試します。`checkDevicePath` が未指定の場合、`dvbDevicePath` が設定されていればそれを事前確認パスとして使用します。
+
+#### cooldownSeconds
+
+チューナーのコマンドが失敗終了した後に、このチューナーをスキップする秒数を指定します。未指定時は `2` です。`0` を指定するとクールダウンを無効にします。
 
 ```
 # 参考: MPEG-2 TS の流れ

@@ -330,6 +330,11 @@ export class Tuner {
                 return;
             }
 
+            if (tuner.cooldownSeconds !== undefined && (!Number.isInteger(tuner.cooldownSeconds) || tuner.cooldownSeconds < 0)) {
+                log.error("invalid type of property `cooldownSeconds` in tuner#%s configuration", i);
+                return;
+            }
+
             if (tuner.remoteMirakurunHost && typeof tuner.remoteMirakurunHost !== "string") {
                 log.error("invalid type of property `remoteMirakurunHost` in tuner#%s configuration", i);
                 return;
