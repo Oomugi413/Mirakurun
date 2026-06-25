@@ -27,6 +27,7 @@ import ServiceItem from "./ServiceItem";
 
 interface TSFilterOptions {
     readonly output?: Writable;
+    readonly passthrough?: boolean;
 
     readonly networkId?: number;
     readonly serviceId?: number;
@@ -124,6 +125,7 @@ export default class TSFilter extends EventEmitter {
 
     // state
     private _closed = false;
+    private _passthrough = false;
     private _ready = true;
     private _providePids: Set<number> = null; // `null` to provides all
     private _parsePids = new Set<number>();
@@ -153,6 +155,7 @@ export default class TSFilter extends EventEmitter {
         super();
 
         const enabletsmf = options.tsmfRelTs || 0;
+        this._passthrough = options.passthrough === true;
         if (enabletsmf !== 0) {
                 this._tsmfEnableTsmfSplit = true;
                 this._tsmfTsNumber = options.tsmfRelTs;
@@ -162,11 +165,11 @@ export default class TSFilter extends EventEmitter {
         this._provideServiceId = options.serviceId || null;
         this._provideEventId = options.eventId || null;
 
-        if (this._provideServiceId !== null) {
+        if (this._provideServiceId !== null && this._passthrough === false) {
             this._providePids = new Set(PROVIDE_PIDS);
             this._ready = false;
         }
-        if (this._provideEventId !== null) {
+        if (this._provideEventId !== null && this._passthrough === false) {
             this._ready = false;
 
             const program = _.program.get(
@@ -197,17 +200,17 @@ export default class TSFilter extends EventEmitter {
             this._providePids = new Set();
             this._ready = false;
         }
-        if (options.parseNIT === true) {
+        if (options.parseNIT === true && this._passthrough === false) {
             this._parseNIT = true;
         }
-        if (options.parseSDT === true) {
+        if (options.parseSDT === true && this._passthrough === false) {
             this._parseSDT = true;
         }
-        if (options.parseEIT === true) {
+        if (options.parseEIT === true && this._passthrough === false) {
             this._parseEIT = true;
         }
 
-        if (this._targetNetworkId) {
+        if (this._targetNetworkId && this._passthrough === false) {
             if (this._targetNetworkId === 4) { // ARIB TR-B15 (BS/CS)
                 this._enableParseDSMCC = true;
             } else {
@@ -241,6 +244,13 @@ export default class TSFilter extends EventEmitter {
     write(chunk: Buffer): void {
         if (this._closed) {
             throw new Error("TSFilter has closed already");
+        }
+
+        if (this._passthrough === true) {
+            if (this._output && this._output.writableEnded === false) {
+                this._output.write(chunk);
+            }
+            return;
         }
 
         let offset = 0;

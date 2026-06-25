@@ -393,7 +393,9 @@ export class Tuner {
         }
 
         while (tryCount > 0) {
-            const device = this._pickTunerDevice(devices, setting.channel, user.priority, user.disableDecoder === true);
+            const disableDecoder = user.disableDecoder === true;
+            const disableMMTSDecoder = user.disableMMTSDecoder === true;
+            const device = this._pickTunerDevice(devices, setting.channel, user.priority, disableDecoder, disableMMTSDecoder);
 
             if (device === null) {
                 if (handoffTried === false && await this._rebalanceForChannel(setting.channel, user.priority)) {
@@ -425,6 +427,7 @@ export class Tuner {
                     networkId: setting.networkId,
                     serviceId: setting.serviceId,
                     eventId: setting.eventId,
+                    passthrough: dest !== undefined && setting.channel.type === "BS4K" && disableMMTSDecoder === true,
                     parseNIT: setting.parseNIT,
                     parseSDT: setting.parseSDT,
                     parseEIT: setting.parseEIT,
@@ -493,11 +496,12 @@ export class Tuner {
         devices: TunerDevice[],
         channel: ChannelItem,
         priority: number,
-        disableDecoder = false
+        disableDecoder = false,
+        disableMMTSDecoder = disableDecoder
     ): TunerDevice | null {
         // 1. join to existing
         for (const device of devices) {
-            if (device.isAvailable === true && device.canReuseStream(channel, disableDecoder) === true) {
+            if (device.isAvailable === true && device.canReuseStream(channel, disableDecoder, disableMMTSDecoder) === true) {
                 return device;
             }
         }

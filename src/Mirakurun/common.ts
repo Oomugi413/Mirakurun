@@ -23,6 +23,7 @@ export interface User {
     readonly agent?: string;
     readonly url?: string;
     readonly disableDecoder?: boolean;
+    readonly disableMMTSDecoder?: boolean;
     readonly streamSetting?: StreamSetting;
     readonly streamInfo?: StreamInfo;
 }

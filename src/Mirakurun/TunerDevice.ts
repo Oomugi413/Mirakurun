@@ -105,6 +105,7 @@ export default class TunerDevice extends EventEmitter {
                 agent: user.agent,
                 url: user.url,
                 disableDecoder: user.disableDecoder,
+                disableMMTSDecoder: user.disableMMTSDecoder,
                 streamSetting: user.streamSetting,
                 streamInfo: user.streamInfo
             };
@@ -146,8 +147,15 @@ export default class TunerDevice extends EventEmitter {
         return this._config.checkDevicePath || this._config.dvbDevicePath || null;
     }
 
-    canReuseStream(channel: ChannelItem, disableDecoder: boolean): boolean {
-        return this._channel === channel && this._streamUsesMMTSDecoder === this._shouldUseMMTSDecoder(channel, disableDecoder);
+    canReuseStream(channel: ChannelItem, disableDecoder: boolean, disableMMTSDecoder = disableDecoder): boolean {
+        if (this._channel !== channel) {
+            return false;
+        }
+        if (this._canFanoutMMTSDecoder(channel) === true) {
+            return true;
+        }
+
+        return this._streamUsesMMTSDecoder === this._shouldUseMMTSDecoder(channel, disableMMTSDecoder);
     }
 
     getPriority(): number {
@@ -243,20 +251,28 @@ export default class TunerDevice extends EventEmitter {
                     }
 
                     await this._kill(true);
-                    this._spawn(channel, user.disableDecoder === true);
-                } else if (this._streamUsesMMTSDecoder !== this._shouldUseMMTSDecoder(channel, user.disableDecoder === true)) {
+                    this._spawn(channel, user.disableMMTSDecoder === true);
+                } else if (
+                    this._canFanoutMMTSDecoder(channel) === false &&
+                    this._streamUsesMMTSDecoder !== this._shouldUseMMTSDecoder(channel, user.disableMMTSDecoder === true)
+                ) {
                     if (this._users.size !== 0) {
                         throw new Error(util.format("TunerDevice#%d has incompatible decoder mode users", this._index));
                     }
                     await this._kill(true);
-                    this._spawn(channel, user.disableDecoder === true);
+                    this._spawn(channel, user.disableMMTSDecoder === true);
                 }
             } else {
                 if (this.canStartStream(channel) === false) {
                     throw new Error(util.format("TunerDevice#%d device path is not available", this._index));
                 }
-                this._spawn(channel, user.disableDecoder === true);
+                this._spawn(channel, user.disableMMTSDecoder === true);
             }
+        }
+
+        const streamChannel = channel || this._channel;
+        if (streamChannel && this._shouldUseMMTSDecoder(streamChannel, user.disableMMTSDecoder === true) === true) {
+            this._openMMTSDecoder();
         }
 
         log.info("TunerDevice#%d streaming to user `%s` (priority=%d)", this._index, user.id, user.priority);
@@ -406,7 +422,7 @@ export default class TunerDevice extends EventEmitter {
         return programs;
     }
 
-    private _spawn(ch: ChannelItem, disableDecoder = false): void {
+    private _spawn(ch: ChannelItem, disableMMTSDecoder = false): void {
         log.debug("TunerDevice#%d spawn...", this._index);
 
         if (this._process) {
@@ -442,7 +458,7 @@ export default class TunerDevice extends EventEmitter {
         this._process = child_process.spawn(parsed.command, parsed.args);
         this._command = cmd;
         this._channel = ch;
-        this._streamUsesMMTSDecoder = this._shouldUseMMTSDecoder(ch, disableDecoder);
+        this._streamUsesMMTSDecoder = false;
 
         if (this._config.dvbDevicePath) {
             const cat = child_process.spawn("cat", [this._config.dvbDevicePath]);
@@ -468,36 +484,9 @@ export default class TunerDevice extends EventEmitter {
 
             this._stream = cat.stdout;
         } else {
-            if (this._streamUsesMMTSDecoder === true) {
-                const parsedDecoder = common.parseCommandForSpawn(this._config.mmtsDecoder);
-                const mmtsDecoderProcess = child_process.spawn(parsedDecoder.command, parsedDecoder.args);
-                this._mmtsDecoderProcess = mmtsDecoderProcess;
-
-                mmtsDecoderProcess.once("error", (err) => {
-                    log.error("TunerDevice#%d mmtsDecoder process error `%s` (pid=%d)", this._index, err.name, mmtsDecoderProcess.pid);
-
-                    this._kill(false).catch(log.error);
-                });
-
-                mmtsDecoderProcess.once("exit", () => {
-                    mmtsDecoderProcess.stdin.end();
-                });
-
-                mmtsDecoderProcess.once("close", (code, signal) => {
-                    log.debug(
-                        "TunerDevice#%d mmtsDecoder process has closed with code=%d by signal `%s` (pid=%d)",
-                        this._index, code, signal, mmtsDecoderProcess.pid
-                    );
-
-                    if (this._exited === false) {
-                        this._kill(false).catch(log.error);
-                    }
-                });
-
-                this._process.stdout.pipe(mmtsDecoderProcess.stdin);
-                this._stream = mmtsDecoderProcess.stdout;
-            } else {
-                this._stream = this._process.stdout;
+            this._stream = this._process.stdout;
+            if (this._shouldUseMMTSDecoder(ch, disableMMTSDecoder) === true) {
+                this._openMMTSDecoder();
             }
         }
 
@@ -540,6 +529,18 @@ export default class TunerDevice extends EventEmitter {
     }
 
     private _streamOnData(chunk: Buffer): void {
+        if (this._canFanoutMMTSDecoder(this._channel) === true) {
+            for (const user of this._users) {
+                if (user.disableMMTSDecoder === true) {
+                    user._stream.write(chunk);
+                }
+            }
+            if (this._mmtsDecoderProcess && this._mmtsDecoderProcess.stdin.writable === true) {
+                this._mmtsDecoderProcess.stdin.write(chunk);
+            }
+            return;
+        }
+
         for (const user of this._users) {
             user._stream.write(chunk);
         }
@@ -548,8 +549,60 @@ export default class TunerDevice extends EventEmitter {
         }
     }
 
-    private _shouldUseMMTSDecoder(ch: ChannelItem, disableDecoder: boolean): boolean {
-        return !this._config.dvbDevicePath && ch.type === "BS4K" && !!this._config.mmtsDecoder && disableDecoder !== true;
+    private _mmtsDecoderStreamOnData(chunk: Buffer): void {
+        for (const user of this._users) {
+            if (user.disableMMTSDecoder !== true) {
+                user._stream.write(chunk);
+            }
+        }
+        if (this._handoffProbe !== null) {
+            this._handoffProbe.write(chunk);
+        }
+    }
+
+    private _openMMTSDecoder(): void {
+        if (this._mmtsDecoderProcess) {
+            return;
+        }
+        if (this._canFanoutMMTSDecoder(this._channel) === false) {
+            return;
+        }
+
+        const parsedDecoder = common.parseCommandForSpawn(this._config.mmtsDecoder);
+        const mmtsDecoderProcess = child_process.spawn(parsedDecoder.command, parsedDecoder.args);
+        this._mmtsDecoderProcess = mmtsDecoderProcess;
+        this._streamUsesMMTSDecoder = true;
+
+        mmtsDecoderProcess.once("error", (err) => {
+            log.error("TunerDevice#%d mmtsDecoder process error `%s` (pid=%d)", this._index, err.name, mmtsDecoderProcess.pid);
+
+            this._kill(false).catch(log.error);
+        });
+
+        mmtsDecoderProcess.once("exit", () => {
+            mmtsDecoderProcess.stdin.end();
+        });
+
+        mmtsDecoderProcess.once("close", (code, signal) => {
+            log.debug(
+                "TunerDevice#%d mmtsDecoder process has closed with code=%d by signal `%s` (pid=%d)",
+                this._index, code, signal, mmtsDecoderProcess.pid
+            );
+
+            if (this._exited === false) {
+                this._kill(false).catch(log.error);
+            }
+        });
+
+        mmtsDecoderProcess.stdout.on("data", this._mmtsDecoderStreamOnData.bind(this));
+    }
+
+    private _shouldUseMMTSDecoder(ch: ChannelItem, disableMMTSDecoder: boolean): boolean {
+        return this._canFanoutMMTSDecoder(ch) === true && disableMMTSDecoder !== true;
+    }
+
+    private _canFanoutMMTSDecoder(ch: ChannelItem): boolean {
+        return !!ch && !this._config.dvbDevicePath && ch.type === "BS4K" && !!this._config.mmtsDecoder;
     }
 
     private _isDevicePathReady(): boolean {
@@ -654,8 +707,9 @@ export default class TunerDevice extends EventEmitter {
             log.warn("TunerDevice#%d respawning because request has not closed", this._index);
             ++status.errorCount.tunerDeviceRespawn;
 
-            const user = [...this._users][0];
-            this._spawn(this._channel, user && user.disableDecoder === true);
+            const users = [...this._users];
+            const disableMMTSDecoder = users.length > 0 && users.every(user => user.disableMMTSDecoder === true);
+            this._spawn(this._channel, disableMMTSDecoder);
             return;
         }
 
@@ -683,13 +737,13 @@ export default class TunerDevice extends EventEmitter {
             return;
         }
 
-        if (this._process && this._process.stdout) {
-            this._process.stdout.unpipe(this._mmtsDecoderProcess.stdin);
-            this._process.stdout.destroy();
+        this._mmtsDecoderProcess.stdout.removeAllListeners("data");
+        if (this._mmtsDecoderProcess.stdin.writable === true) {
+            this._mmtsDecoderProcess.stdin.end();
         }
-        this._mmtsDecoderProcess.stdin.end();
         this._mmtsDecoderProcess.kill("SIGTERM");
         this._mmtsDecoderProcess = null;
+        this._streamUsesMMTSDecoder = false;
     }
 
     private _updated(): void {
