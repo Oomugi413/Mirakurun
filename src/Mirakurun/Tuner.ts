@@ -393,7 +393,7 @@ export class Tuner {
         }
 
         while (tryCount > 0) {
-            const device = this._pickTunerDevice(devices, setting.channel, user.priority);
+            const device = this._pickTunerDevice(devices, setting.channel, user.priority, user.disableDecoder === true);
 
             if (device === null) {
                 if (handoffTried === false && await this._rebalanceForChannel(setting.channel, user.priority)) {
@@ -492,11 +492,12 @@ export class Tuner {
     private _pickTunerDevice(
         devices: TunerDevice[],
         channel: ChannelItem,
-        priority: number
+        priority: number,
+        disableDecoder = false
     ): TunerDevice | null {
         // 1. join to existing
         for (const device of devices) {
-            if (device.isAvailable === true && device.channel === channel) {
+            if (device.isAvailable === true && device.canReuseStream(channel, disableDecoder) === true) {
                 return device;
             }
         }

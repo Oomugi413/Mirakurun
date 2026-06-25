@@ -55,6 +55,7 @@ export default class TunerDevice extends EventEmitter {
     private _process: child_process.ChildProcess = null;
     private _mmtsDecoderProcess: child_process.ChildProcess = null;
     private _stream: stream.Readable = null;
+    private _streamUsesMMTSDecoder = false;
 
     private _users = new Set<User>();
     private _handoffProbe: TSHandoffProbe = null;
@@ -143,6 +144,10 @@ export default class TunerDevice extends EventEmitter {
 
     get checkDevicePath(): string {
         return this._config.checkDevicePath || this._config.dvbDevicePath || null;
+    }
+
+    canReuseStream(channel: ChannelItem, disableDecoder: boolean): boolean {
+        return this._channel === channel && this._streamUsesMMTSDecoder === this._shouldUseMMTSDecoder(channel, disableDecoder);
     }
 
     getPriority(): number {
@@ -238,13 +243,19 @@ export default class TunerDevice extends EventEmitter {
                     }
 
                     await this._kill(true);
-                    this._spawn(channel);
+                    this._spawn(channel, user.disableDecoder === true);
+                } else if (this._streamUsesMMTSDecoder !== this._shouldUseMMTSDecoder(channel, user.disableDecoder === true)) {
+                    if (this._users.size !== 0) {
+                        throw new Error(util.format("TunerDevice#%d has incompatible decoder mode users", this._index));
+                    }
+                    await this._kill(true);
+                    this._spawn(channel, user.disableDecoder === true);
                 }
             } else {
                 if (this.canStartStream(channel) === false) {
                     throw new Error(util.format("TunerDevice#%d device path is not available", this._index));
                 }
-                this._spawn(channel);
+                this._spawn(channel, user.disableDecoder === true);
             }
         }
 
@@ -395,7 +406,7 @@ export default class TunerDevice extends EventEmitter {
         return programs;
     }
 
-    private _spawn(ch: ChannelItem): void {
+    private _spawn(ch: ChannelItem, disableDecoder = false): void {
         log.debug("TunerDevice#%d spawn...", this._index);
 
         if (this._process) {
@@ -431,6 +442,7 @@ export default class TunerDevice extends EventEmitter {
         this._process = child_process.spawn(parsed.command, parsed.args);
         this._command = cmd;
         this._channel = ch;
+        this._streamUsesMMTSDecoder = this._shouldUseMMTSDecoder(ch, disableDecoder);
 
         if (this._config.dvbDevicePath) {
             const cat = child_process.spawn("cat", [this._config.dvbDevicePath]);
@@ -456,7 +468,7 @@ export default class TunerDevice extends EventEmitter {
 
             this._stream = cat.stdout;
         } else {
-            if (ch.type === "BS4K" && this._config.mmtsDecoder) {
+            if (this._streamUsesMMTSDecoder === true) {
                 const parsedDecoder = common.parseCommandForSpawn(this._config.mmtsDecoder);
                 const mmtsDecoderProcess = child_process.spawn(parsedDecoder.command, parsedDecoder.args);
                 this._mmtsDecoderProcess = mmtsDecoderProcess;
@@ -534,6 +546,10 @@ export default class TunerDevice extends EventEmitter {
         if (this._handoffProbe !== null) {
             this._handoffProbe.write(chunk);
         }
+    }
+
+    private _shouldUseMMTSDecoder(ch: ChannelItem, disableDecoder: boolean): boolean {
+        return !this._config.dvbDevicePath && ch.type === "BS4K" && !!this._config.mmtsDecoder && disableDecoder !== true;
     }
 
     private _isDevicePathReady(): boolean {
@@ -638,13 +654,15 @@ export default class TunerDevice extends EventEmitter {
             log.warn("TunerDevice#%d respawning because request has not closed", this._index);
             ++status.errorCount.tunerDeviceRespawn;
 
-            this._spawn(this._channel);
+            const user = [...this._users][0];
+            this._spawn(this._channel, user && user.disableDecoder === true);
             return;
         }
 
         this._fatalCount = 0;
         this._channel = null;
         this._users.clear();
+        this._streamUsesMMTSDecoder = false;
 
         if (this._isFault === false) {
             this._isAvailable = true;
