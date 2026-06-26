@@ -18,6 +18,7 @@ import { existsSync } from "fs";
 import { stat, mkdir, readFile, writeFile } from "fs/promises";
 import * as log from "./log";
 import * as db from "./db";
+import * as apid from "../../api";
 import _ from "./_";
 import Event from "./Event";
 import ChannelItem from "./ChannelItem";
@@ -247,6 +248,10 @@ export class Service {
     private async _initJobs(): Promise<void> {
         log.debug("init service jobs...");
 
+        for (const type of _.tuner.getRemoteOnlyTypes()) {
+            this._queueRemoteSync(type);
+        }
+
         // add services from channel config
         for (const channelConfig of _.config.channels) {
             if (channelConfig.isDisabled || !channelConfig.serviceId) {
@@ -312,6 +317,76 @@ export class Service {
             this._items.map(service => service.export()),
             _.configIntegrity.channels
         );
+    }
+
+    private _queueRemoteSync(type: apid.ChannelType): void {
+        _.job.add({
+            key: `Service.Remote.Sync.${type}`,
+            name: `Service Remote Sync ${type}`,
+            fn: () => this._syncRemoteType(type),
+            retryOnFail: true,
+            retryMax: (1000 * 60 * 60 * 12) / (1000 * 60 * 3), // (12時間 / retryDelay) = 12時間～
+            retryDelay: 1000 * 60 * 3
+        });
+    }
+
+    private async _syncRemoteType(type: apid.ChannelType): Promise<void> {
+        log.info("ChannelType#'%s' remote service sync has started", type);
+
+        let services: apid.Service[];
+        try {
+            services = await _.tuner.getRemoteServicesByType(type);
+        } catch (e) {
+            log.warn("ChannelType#'%s' remote service sync has failed [%s]", type, e);
+            throw new Error("Remote service sync failed");
+        }
+
+        let channelCount = 0;
+        let serviceCount = 0;
+
+        for (const service of services) {
+            if (!service.channel || !service.channel.channel) {
+                continue;
+            }
+
+            let channel = _.channel.get(type, service.channel.channel);
+            if (channel === null) {
+                channel = new ChannelItem({
+                    name: service.channel.name || service.name || `${type}:${service.channel.channel}`,
+                    type,
+                    channel: service.channel.channel
+                });
+                _.channel.add(channel);
+                channelCount++;
+            }
+
+            const item = this.get(service.networkId, service.serviceId);
+            if (item !== null) {
+                item.name = service.name;
+                item.type = service.type;
+                if (service.logoId > -1) {
+                    item.logoId = service.logoId;
+                }
+                item.remoteControlKeyId = service.remoteControlKeyId;
+                continue;
+            }
+
+            this.add(
+                new ServiceItem(
+                    channel,
+                    service.networkId,
+                    service.serviceId,
+                    service.name,
+                    service.type,
+                    service.logoId,
+                    service.remoteControlKeyId
+                )
+            );
+            serviceCount++;
+        }
+
+        log.info("ChannelType#'%s' remote service sync has finished (%d channels, %d services added)",
+            type, channelCount, serviceCount);
     }
 
     private _queueCheckToAdd(channel: ChannelItem, serviceId: number): void {

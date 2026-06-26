@@ -110,6 +110,33 @@ export class Tuner {
         return false;
     }
 
+    getRemoteOnlyTypes(): apid.ChannelType[] {
+        return common.channelTypes.filter(type => {
+            const devices = this._getDevicesByType(type);
+            return this._isRemoteOnly(devices);
+        });
+    }
+
+    async getRemoteServicesByType(type: apid.ChannelType): Promise<apid.Service[]> {
+        const remoteDevice = this._getRemoteOnlyDevice(this._getDevicesByType(type));
+        if (remoteDevice === null) {
+            throw new Error(`channel type \`${type}\` is not remote-only`);
+        }
+
+        const Client = require("../client").default;
+        const client = new Client();
+        client.host = remoteDevice.config.remoteMirakurunHost;
+        client.port = remoteDevice.config.remoteMirakurunPort || 40772;
+        client.userAgent = "Mirakurun (Remote Service Sync)";
+
+        const services = await client.getServices({
+            "channel.type": common.getTuningChannelType(type)
+        });
+        log.info("Fetched %d services for channel type %s from remote Mirakurun", services.length, type);
+
+        return services;
+    }
+
     initChannelStream(channel: ChannelItem, userReq: common.UserRequest, output: Writable): Promise<TSFilter> {
         let networkId: number;
 
@@ -620,11 +647,7 @@ export class Tuner {
     private _getDevicesByChannel(channel: ChannelItem): TunerDevice[] {
         const devices = [];
 
-        for (const device of this._devices) {
-            // check if tuner supports this channel type
-            if (device.config.types.includes(channel.type) === false) {
-                continue;
-            }
+        for (const device of this._getDevicesByType(channel.type)) {
             // if channel specifies allowedTuners, only return matching tuners
             if (channel.allowedTuners && channel.allowedTuners.length > 0) {
                 if (channel.allowedTuners.includes(device.config.name)) {
@@ -632,6 +655,18 @@ export class Tuner {
                 }
             } else {
                 // no allowedTuners specified, return all tuners with matching type
+                devices.push(device);
+            }
+        }
+
+        return devices;
+    }
+
+    private _getDevicesByType(type: apid.ChannelType): TunerDevice[] {
+        const devices = [];
+
+        for (const device of this._devices) {
+            if (device.config.types.includes(type) === true) {
                 devices.push(device);
             }
         }
