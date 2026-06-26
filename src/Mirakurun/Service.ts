@@ -248,7 +248,8 @@ export class Service {
     private async _initJobs(): Promise<void> {
         log.debug("init service jobs...");
 
-        for (const type of _.tuner.getRemoteOnlyTypes()) {
+        const remoteOnlyTypes = _.tuner.getRemoteOnlyTypes();
+        for (const type of remoteOnlyTypes) {
             this._queueRemoteSync(type);
         }
 
@@ -275,6 +276,9 @@ export class Service {
             name: "Service Add Scan [Find Targets]",
             fn: async () => {
                 for (const channel of _.channel.items) {
+                    if (remoteOnlyTypes.includes(channel.type)) {
+                        continue;
+                    }
                     if (this.findByChannel(channel).length > 0) {
                         continue;
                     }
@@ -296,7 +300,13 @@ export class Service {
                         key: "Service.Updater",
                         name: "Service Updater",
                         fn: async () => {
+                            for (const type of remoteOnlyTypes) {
+                                this._queueRemoteSync(type);
+                            }
                             for (const channel of _.channel.items) {
+                                if (remoteOnlyTypes.includes(channel.type)) {
+                                    continue;
+                                }
                                 if (this.findByChannel(channel).length === 0) {
                                     continue;
                                 }
