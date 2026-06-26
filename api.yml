@@ -656,6 +656,11 @@ definitions:
         type: integer
       commandVars:
         type: object
+      allowedTuners:
+        type: array
+        description: "Tuner names that can be used for this channel. If omitted, any tuner with a matching type can be used."
+        items:
+          type: string
       isDisabled:
         type: boolean
 

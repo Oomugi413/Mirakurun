@@ -67,13 +67,28 @@ import Server from "./Mirakurun/Server";
 import * as config from "./Mirakurun/config";
 import * as log from "./Mirakurun/log";
 
+function sortForIntegrity(value: any): any {
+    if (Array.isArray(value)) {
+        return value.map(item => sortForIntegrity(item));
+    }
+    if (value !== null && typeof value === "object") {
+        return Object.keys(value).sort().reduce((result, key) => {
+            if (key !== "allowedTuners") {
+                result[key] = sortForIntegrity(value[key]);
+            }
+            return result;
+        }, {});
+    }
+
+    return value;
+}
+
 (async function top() {
     _.config.server = await config.loadServer();
     _.config.channels = await config.loadChannels();
-    // Only compute hash based on channel identifiers (type + channel) to avoid re-scanning when config fields change
-    // serviceId is excluded because: 1) users may not know remote channel's serviceId, 2) changing serviceId should only affect that channel
-    const channelIdentifiers = _.config.channels.map(ch => ({ type: ch.type, channel: ch.channel }));
-    _.configIntegrity.channels = createHash("sha256").update(JSON.stringify(channelIdentifiers)).digest("base64");
+    // Invalidate services/programs cache when channel config changes. allowedTuners only limits device selection,
+    // so keep it out of the integrity hash to avoid unnecessary channel rescans.
+    _.configIntegrity.channels = createHash("sha256").update(JSON.stringify(sortForIntegrity(_.config.channels))).digest("base64");
     _.config.tuners = await config.loadTuners();
 
     if (typeof _.config.server.logLevel === "number") {

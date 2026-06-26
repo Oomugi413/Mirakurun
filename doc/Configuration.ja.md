@@ -167,5 +167,7 @@ sudo npm install arib-b25-stream-test -g --unsafe-perm
     polarity: H
     exampleArg1: -arg0 -arg1=example
     exampleArg2: -arg2 "引用符を使用して空白を含むことができます"
+  allowedTuners: # オプションのチューナー名リスト。省略時は種別が一致する任意のチューナーを使用します。
+    - Tuner-1
   isDisabled: false # Boolean
 ```

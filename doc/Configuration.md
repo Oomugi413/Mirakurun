@@ -167,5 +167,7 @@ sudo npm install arib-b25-stream-test -g --unsafe-perm
     polarity: H
     exampleArg1: -arg0 -arg1=example
     exampleArg2: -arg2 "Can include spaces using quotes"
+  allowedTuners: # Optional tuner name list. If omitted, any matching tuner can be used.
+    - Tuner-1
   isDisabled: false # Boolean
 ```
