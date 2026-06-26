@@ -382,6 +382,7 @@ export class Tuner {
         }
 
         const devices = this._getDevicesByChannel(setting.channel);
+        const recoverUnavailableTuners = user.priority >= 0 && devices.length > 0 && devices.every(device => device.isAvailable === false);
         let tryCount = 50;
         let handoffTried = false;
 
@@ -395,7 +396,7 @@ export class Tuner {
         while (tryCount > 0) {
             const disableDecoder = user.disableDecoder === true;
             const disableMMTSDecoder = user.disableMMTSDecoder === true;
-            const device = this._pickTunerDevice(devices, setting.channel, user.priority, disableDecoder, disableMMTSDecoder);
+            const device = this._pickTunerDevice(devices, setting.channel, user.priority, disableDecoder, disableMMTSDecoder, recoverUnavailableTuners);
 
             if (device === null) {
                 if (handoffTried === false && await this._rebalanceForChannel(setting.channel, user.priority)) {
@@ -439,7 +440,7 @@ export class Tuner {
                 });
 
                 try {
-                    await device.startStream(user, tsFilter, setting.channel);
+                    await device.startStream(user, tsFilter, setting.channel, recoverUnavailableTuners);
                     return tsFilter;
                 } catch (err) {
                     tsFilter.end();
@@ -497,7 +498,8 @@ export class Tuner {
         channel: ChannelItem,
         priority: number,
         disableDecoder = false,
-        disableMMTSDecoder = disableDecoder
+        disableMMTSDecoder = disableDecoder,
+        recoverUnavailableTuners = false
     ): TunerDevice | null {
         // 1. join to existing
         for (const device of devices) {
@@ -525,6 +527,18 @@ export class Tuner {
             devices.sort((t1, t2) => t1.getPriority() - t2.getPriority());
             for (const device of devices) {
                 if (device.isUsing === true && device.getPriority() < priority && device.canStartStream(channel) === true) {
+                    return device;
+                }
+            }
+        }
+
+        // 5. recover unavailable tuners
+        // If every tuner for this channel type is unavailable, keep one attempt path open
+        // for foreground/external requests instead of letting background failures deadlock the type.
+        if (recoverUnavailableTuners === true) {
+            devices.sort((t1, t2) => t1.getPriority() - t2.getPriority());
+            for (const device of devices) {
+                if (device.getPriority() <= priority && device.canStartStream(channel, true) === true) {
                     return device;
                 }
             }

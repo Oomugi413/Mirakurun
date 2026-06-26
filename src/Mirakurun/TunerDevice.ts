@@ -184,8 +184,8 @@ export default class TunerDevice extends EventEmitter {
         return true;
     }
 
-    canStartStream(channel?: ChannelItem): boolean {
-        if (this._isAvailable === false) {
+    canStartStream(channel?: ChannelItem, ignoreAvailability = false): boolean {
+        if (ignoreAvailability === false && this._isAvailable === false) {
             return false;
         }
         if (channel && this._config.types.includes(channel.type) === false) {
@@ -225,11 +225,15 @@ export default class TunerDevice extends EventEmitter {
         await this._kill(true);
     }
 
-    async startStream(user: User, stream: TSFilter, channel?: ChannelItem): Promise<void> {
+    async startStream(user: User, stream: TSFilter, channel?: ChannelItem, recoverUnavailable = false): Promise<void> {
         log.debug("TunerDevice#%d start stream for user `%s` (priority=%d)...", this._index, user.id, user.priority);
 
         if (this._isAvailable === false) {
-            throw new Error(util.format("TunerDevice#%d is not available", this._index));
+            if (recoverUnavailable === true && channel) {
+                await this._recoverUnavailableForStart(channel);
+            } else {
+                throw new Error(util.format("TunerDevice#%d is not available", this._index));
+            }
         }
 
         if (!channel && !this._stream) {
@@ -599,6 +603,41 @@ export default class TunerDevice extends EventEmitter {
 
     private _shouldUseMMTSDecoder(ch: ChannelItem, disableMMTSDecoder: boolean): boolean {
         return this._canFanoutMMTSDecoder(ch) === true && disableMMTSDecoder !== true;
+    }
+
+    private async _recoverUnavailableForStart(channel: ChannelItem): Promise<void> {
+        if (this._config.types.includes(channel.type) === false) {
+            throw new Error(util.format("TunerDevice#%d is not supported for channel type `%s`", this._index, channel.type));
+        }
+
+        log.warn(
+            "TunerDevice#%d is unavailable, but all tuners for `%s` are unavailable; forcing recovery for `%s`",
+            this._index,
+            channel.type,
+            channel.name
+        );
+
+        if (this._isFault === true) {
+            log.warn("TunerDevice#%d fault state has been cleared for forced recovery", this._index);
+            this._isFault = false;
+        }
+
+        if (this._process && this._process.pid) {
+            if (this._closing === true) {
+                await new Promise<void>(resolve => this.once("release", resolve));
+            } else {
+                await this._kill(true);
+            }
+        }
+
+        this._channel = null;
+        this._users.clear();
+        this._streamUsesMMTSDecoder = false;
+        this._closing = false;
+        this._exited = false;
+        this._isAvailable = true;
+
+        this._updated();
     }
 
     private _canFanoutMMTSDecoder(ch: ChannelItem): boolean {
