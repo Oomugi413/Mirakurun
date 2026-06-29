@@ -11,4 +11,5 @@
 *.tsbuildinfo
 test.*
 .DS_Store
+.codegraph
 .vs
