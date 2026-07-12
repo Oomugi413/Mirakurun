@@ -17,6 +17,7 @@ import { Operation } from "express-openapi";
 import * as api from "../../api";
 import * as apid from "../../../../api";
 import * as config from "../../config";
+import _ from "../../_";
 
 export const get: Operation = async (req, res) => {
     res.status(200);
@@ -46,6 +47,10 @@ export const put: Operation = async (req, res) => {
     const channels: apid.ConfigChannels = req.body;
 
     await config.saveChannels(channels);
+    _.config.channels = channels;
+    for (const channel of channels) {
+        _.channel.get(channel.type, channel.channel)?.setAllowedTuners(channel.allowedTuners);
+    }
 
     res.status(200);
     api.responseJSON(res, channels);
