@@ -305,7 +305,7 @@ export class Client {
         }, { priority, signal });
     }
 
-    async getChannelStream(opt: { type: apid.ChannelType, channel: string, decode?: boolean, priority?: number, signal?: AbortSignal }): Promise<http.IncomingMessage>;
+    async getChannelStream(opt: { type: apid.ChannelType, channel: string, decode?: boolean, priority?: number, signal?: AbortSignal, localTunerOnly?: boolean }): Promise<http.IncomingMessage>;
     async getChannelStream(type: apid.ChannelType, channel: string, decode?: boolean, priority?: number): Promise<http.IncomingMessage>;
     async getChannelStream(...args: any[]): Promise<http.IncomingMessage> {
         let type: apid.ChannelType;
@@ -313,6 +313,7 @@ export class Client {
         let decode: boolean;
         let priority: number;
         let signal: AbortSignal;
+        let localTunerOnly = false;
 
         if (typeof args[0] === "object") {
             const opt = args[0];
@@ -321,6 +322,7 @@ export class Client {
             decode = opt.decode;
             priority = opt.priority;
             signal = opt.signal;
+            localTunerOnly = opt.localTunerOnly === true;
         } else {
             type = args[0];
             channel = args[1];
@@ -332,7 +334,11 @@ export class Client {
             type,
             channel,
             decode: decode ? 1 : 0
-        }, { priority, signal });
+        }, {
+            priority,
+            signal,
+            headers: localTunerOnly ? { "X-Mirakurun-Local-Tuner-Only": "1" } : undefined
+        });
     }
 
     async getPrograms(query?: ProgramsQuery): Promise<apid.Program[]> {
@@ -371,8 +377,10 @@ export class Client {
         }, { priority, signal });
     }
 
-    async getServices(query?: ServicesQuery): Promise<apid.Service[]> {
-        const res = await this.call("getServices", query);
+    async getServices(query?: ServicesQuery, option: { localTunerOnly?: boolean } = {}): Promise<apid.Service[]> {
+        const res = await this.call("getServices", query, {
+            headers: option.localTunerOnly === true ? { "X-Mirakurun-Local-Tuner-Only": "1" } : undefined
+        });
         return res.body as apid.Service[];
     }
 

@@ -105,6 +105,8 @@
   remoteMirakurunHost: 192.168.x.x # String
   remoteMirakurunPort: 40772 # Integer
   remoteMirakurunDecoder: false # Boolean
+  # 接続先 Mirakurun がさらに remote tuner を選択することを許可します。デフォルトは false。
+  remoteMirakurunAllowNested: false # Boolean
   # 以下はオプション
   decoder: cmd # String
   mmtsDecoder: cmd # String
@@ -126,6 +128,10 @@
 #### cooldownSeconds
 
 チューナーのコマンドが失敗終了した後に、このチューナーをスキップする秒数を指定します。未指定時は `2` です。`0` を指定するとクールダウンを無効にします。
+
+#### remoteMirakurunAllowNested
+
+リモート Mirakurun がさらに別の remote tuner を選択することを許可します。未指定時は `false` で、接続先ではローカル tuner のみが選択されます。多段の remote tuner 構成が必要な場合だけ `true` を指定してください。
 
 ```
 # 参考: MPEG-2 TS の流れ

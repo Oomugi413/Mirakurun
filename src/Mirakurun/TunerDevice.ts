@@ -476,6 +476,9 @@ export default class TunerDevice extends EventEmitter {
             if (this._config.remoteMirakurunDecoder === true) {
                 cmd += " decode";
             }
+            if (this._config.remoteMirakurunAllowNested === true) {
+                cmd += " allow-nested";
+            }
         } else {
             cmd = ch.type === "BS4K" && this._config.commandBS4K ? this._config.commandBS4K : this._config.command;
         }

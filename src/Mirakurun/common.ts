@@ -24,6 +24,7 @@ export interface User {
     readonly url?: string;
     readonly disableDecoder?: boolean;
     readonly disableMMTSDecoder?: boolean;
+    readonly localTunerOnly?: boolean;
     readonly streamSetting?: StreamSetting;
     readonly streamInfo?: StreamInfo;
 }

@@ -625,6 +625,8 @@ definitions:
         type: integer
       remoteMirakurunDecoder:
         type: boolean
+      remoteMirakurunAllowNested:
+        type: boolean
       decoder:
         type: string
       mmtsDecoder:

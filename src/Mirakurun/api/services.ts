@@ -27,7 +27,11 @@ export const get: Operation = async (req, res) => {
 
     const services: apid.Service[] = [];
 
+    const localTunerOnly = req.get("X-Mirakurun-Local-Tuner-Only") === "1";
     for (const serviceItem of serviceItems.filter(sift(req.query))) {
+        if (localTunerOnly === true && _.tuner.hasLocalTunerForChannel(serviceItem.channel) === false) {
+            continue;
+        }
         services.push({
             ...serviceItem.export(),
             hasLogoData: await Service.isLogoDataExists(serviceItem.networkId, serviceItem.logoId)
@@ -76,6 +80,14 @@ get.apiDoc = {
             in: "query",
             name: "channel.channel",
             type: "string",
+            required: false
+        },
+        {
+            in: "header",
+            name: "X-Mirakurun-Local-Tuner-Only",
+            type: "integer",
+            minimum: 0,
+            maximum: 1,
             required: false
         }
     ],

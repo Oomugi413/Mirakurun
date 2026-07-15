@@ -153,12 +153,14 @@ export class Tuner {
             host: string;
             port: number;
             tunerNames: string[];
+            allowNested: boolean;
         }>();
 
         for (const device of devices) {
             const host = device.config.remoteMirakurunHost;
             const port = device.config.remoteMirakurunPort || 40772;
-            const key = JSON.stringify([host, port]);
+            const allowNested = device.config.remoteMirakurunAllowNested === true;
+            const key = JSON.stringify([host, port, allowNested]);
             const source = remoteSources.get(key);
             if (source) {
                 source.tunerNames.push(device.config.name);
@@ -166,7 +168,8 @@ export class Tuner {
                 remoteSources.set(key, {
                     host,
                     port,
-                    tunerNames: [device.config.name]
+                    tunerNames: [device.config.name],
+                    allowNested
                 });
             }
         }
@@ -180,6 +183,8 @@ export class Tuner {
 
             const services = await client.getServices({
                 "channel.type": common.getTuningChannelType(type)
+            }, {
+                localTunerOnly: source.allowNested === false
             });
             log.info(
                 "Fetched %d services for channel type %s from remote Mirakurun %s:%d (%s)",
@@ -239,6 +244,10 @@ export class Tuner {
                 parseEIT: true
             }
         }, output);
+    }
+
+    hasLocalTunerForChannel(channel: ChannelItem): boolean {
+        return this._getDevicesByChannel(channel).some(device => device.isRemote === false);
     }
 
     initServiceStream(service: ServiceItem, userReq: common.UserRequest, output: Writable): Promise<TSFilter> {
@@ -463,6 +472,11 @@ export class Tuner {
                 return;
             }
 
+            if (tuner.remoteMirakurunAllowNested !== undefined && typeof tuner.remoteMirakurunAllowNested !== "boolean") {
+                log.error("invalid type of property `remoteMirakurunAllowNested` in tuner#%s configuration", i);
+                return;
+            }
+
             if (tuner.mmtsDecoder !== undefined && typeof tuner.mmtsDecoder !== "string") {
                 log.error("invalid type of property `mmtsDecoder` in tuner#%s configuration", i);
                 return;
@@ -494,7 +508,8 @@ export class Tuner {
             setting.parseEIT = false;
         }
 
-        const devices = this._getDevicesByChannel(setting.channel);
+        const devices = this._getDevicesByChannel(setting.channel)
+            .filter(device => user.localTunerOnly !== true || device.isRemote === false);
         const recoverUnavailableTuners = user.priority >= 0 && devices.length > 0 && devices.every(device => device.isAvailable === false);
         let tryCount = 50;
         let handoffTried = false;

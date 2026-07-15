@@ -388,6 +388,17 @@ export const TunersConfigView: React.FC = () => {
                                                             }
                                                         }}
                                                     />
+                                                    <Checkbox
+                                                        label="Allow Nested Remote Tuner"
+                                                        checked={tuner.remoteMirakurunAllowNested || false}
+                                                        onChange={(e) => {
+                                                            if (e.currentTarget.checked) {
+                                                                updateTuner(i, { remoteMirakurunAllowNested: true });
+                                                            } else {
+                                                                deleteTunerProperty(i, "remoteMirakurunAllowNested");
+                                                            }
+                                                        }}
+                                                    />
                                                 </div>
                                             </>
                                         )}

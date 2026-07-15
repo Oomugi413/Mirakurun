@@ -324,6 +324,8 @@ export interface ConfigTunersItem {
     remoteMirakurunPort?: number;
     /** [remote] `true` to use remote decoder. `false` to use local decoder. (if decoder specified) */
     remoteMirakurunDecoder?: boolean;
+    /** [remote] `true` to allow the upstream Mirakurun to select another remote tuner. Default: `false`. */
+    remoteMirakurunAllowNested?: boolean;
     /** CAS processor command if needed. */
     decoder?: string;
     /** MMTS processor command for BS4K if needed. */

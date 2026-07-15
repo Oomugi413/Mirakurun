@@ -256,3 +256,32 @@ describe("[tuner-device.spec] remote source circuit breaker", () => {
         assert.strictEqual(killed, true);
     });
 });
+
+describe("[tuner-device.spec] local-only channel selection", () => {
+    it("reports local availability after applying allowedTuners", () => {
+        const tuner = Object.create(Tuner.prototype);
+        const channel = createChannel();
+        tuner._devices = [
+            {
+                isRemote: false,
+                config: {
+                    name: "LOCAL-GR-1",
+                    types: ["GR-ALT"]
+                }
+            },
+            {
+                isRemote: true,
+                config: {
+                    name: "J-GR-1",
+                    types: ["GR-ALT"]
+                }
+            }
+        ];
+
+        assert.strictEqual(tuner.hasLocalTunerForChannel(channel), true);
+
+        channel.setAllowedTuners(["J-GR-1"]);
+
+        assert.strictEqual(tuner.hasLocalTunerForChannel(channel), false);
+    });
+});

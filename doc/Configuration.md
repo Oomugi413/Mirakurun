@@ -105,6 +105,8 @@
   remoteMirakurunHost: 192.168.x.x # String
   remoteMirakurunPort: 40772 # Integer
   remoteMirakurunDecoder: false # Boolean
+  # Allow the upstream Mirakurun to select another remote tuner. Default: false.
+  remoteMirakurunAllowNested: false # Boolean
   # Optional parameters below
   decoder: cmd # String
   mmtsDecoder: cmd # String
@@ -126,6 +128,10 @@ Specify a device path that must exist before this tuner can be started. If the p
 #### cooldownSeconds
 
 Specify seconds to skip this tuner after its command exits with failure. When omitted, it defaults to `2`. Set `0` to disable cooldown.
+
+#### remoteMirakurunAllowNested
+
+Allows the upstream Mirakurun to select another remote tuner. The default is `false`, so only local tuners on the upstream Mirakurun are eligible. Set this to `true` only when a multi-hop remote tuner topology is intentional.
 
 ```
 # Reference: MPEG-2 TS flow
