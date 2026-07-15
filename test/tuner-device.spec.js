@@ -5,9 +5,25 @@ const EventEmitter = require("events");
 const shared = require("../lib/Mirakurun/_").default;
 const MirakurunEvent = require("../lib/Mirakurun/Event").default;
 const ChannelItem = require("../lib/Mirakurun/ChannelItem").default;
+const remoteExitCodes = require("../lib/remoteExitCodes");
+const statusPath = require.resolve("../lib/Mirakurun/status");
+require.cache[statusPath] = {
+    id: statusPath,
+    filename: statusPath,
+    loaded: true,
+    exports: {
+        __esModule: true,
+        default: {
+            errorCount: {
+                tunerDeviceRespawn: 0
+            }
+        }
+    }
+};
 const TunerDeviceModule = require("../lib/Mirakurun/TunerDevice");
 const TunerDevice = TunerDeviceModule.default;
 const TunerStartupError = TunerDeviceModule.TunerStartupError;
+const Tuner = require("../lib/Mirakurun/Tuner").default;
 
 function createChannel() {
     return new ChannelItem({
@@ -88,10 +104,14 @@ describe("[tuner-device.spec] remote stream startup", () => {
 
         setImmediate(() => {
             device._exited = true;
-            device._process.emit("close", 1, null);
+            device._process.emit("close", remoteExitCodes.REMOTE_EXIT_SOURCE_UNAVAILABLE, null);
         });
 
-        await assert.rejects(starting, TunerStartupError);
+        await assert.rejects(starting, err => {
+            assert.ok(err instanceof TunerStartupError);
+            assert.strictEqual(err.failureScope, "source");
+            return true;
+        });
         assert.strictEqual(device.users.length, 0);
     });
 
@@ -120,5 +140,119 @@ describe("[tuner-device.spec] remote stream startup", () => {
         assert.strictEqual(output.closed, true);
         assert.strictEqual(device.users.length, 0);
         assert.strictEqual(device.pid, null);
+    });
+});
+
+describe("[tuner-device.spec] remote source circuit breaker", () => {
+    it("groups tuner devices from the same remote source", () => {
+        const tuner = Object.create(Tuner.prototype);
+        tuner._sourceFailureState = new Map();
+
+        const first = {
+            index: 10,
+            isRemote: true,
+            config: {
+                remoteMirakurunHost: "10.77.0.1",
+                remoteMirakurunPort: 40772
+            }
+        };
+        const second = {
+            index: 11,
+            isRemote: true,
+            config: {
+                remoteMirakurunHost: "10.77.0.1",
+                remoteMirakurunPort: 40772
+            }
+        };
+
+        tuner._markSourceFailure(first);
+
+        assert.strictEqual(tuner._isSourceFailureCoolingDown(second), true);
+    });
+
+    it("allows only one half-open probe after the source cooldown", () => {
+        const tuner = Object.create(Tuner.prototype);
+        tuner._sourceFailureState = new Map();
+        const channel = createChannel();
+        const device = {
+            index: 10,
+            isRemote: true,
+            config: {
+                remoteMirakurunHost: "10.77.0.1",
+                remoteMirakurunPort: 40772
+            }
+        };
+
+        tuner._markSourceFailure(device);
+        const state = tuner._sourceFailureState.get("10.77.0.1:40772");
+        state.retryAt = Date.now() - 1;
+
+        assert.strictEqual(tuner._beginSourceProbe(device, channel), true);
+        assert.strictEqual(tuner._beginSourceProbe(device, channel), false);
+        assert.strictEqual(tuner._isSourceFailureCoolingDown(device), true);
+    });
+
+    it("recovers the remote source after a stable probe", () => {
+        const tuner = Object.create(Tuner.prototype);
+        tuner._sourceFailureState = new Map();
+        const channel = createChannel();
+        const device = {
+            index: 10,
+            isRemote: true,
+            isUsing: true,
+            channel,
+            lastDataAt: Date.now(),
+            config: {
+                remoteMirakurunHost: "10.77.0.1",
+                remoteMirakurunPort: 40772
+            }
+        };
+        tuner._sourceFailureState.set("10.77.0.1:40772", {
+            retryAt: 0,
+            probing: true,
+            generation: 3,
+            probeDeviceIndex: 10,
+            probeChannelKey: "GR-ALT:27"
+        });
+
+        tuner._completeSourceRecoveryProbe(device, channel, "10.77.0.1:40772", 3);
+
+        assert.strictEqual(tuner._sourceFailureState.has("10.77.0.1:40772"), false);
+    });
+
+    it("reopens the circuit when the probe stops producing data", async () => {
+        const tuner = Object.create(Tuner.prototype);
+        tuner._sourceFailureState = new Map();
+        const channel = createChannel();
+        let killed = false;
+        const device = {
+            index: 10,
+            isRemote: true,
+            isUsing: true,
+            channel,
+            lastDataAt: 0,
+            config: {
+                remoteMirakurunHost: "10.77.0.1",
+                remoteMirakurunPort: 40772
+            },
+            kill: async () => {
+                killed = true;
+            }
+        };
+        tuner._sourceFailureState.set("10.77.0.1:40772", {
+            retryAt: 0,
+            probing: true,
+            generation: 3,
+            probeDeviceIndex: 10,
+            probeChannelKey: "GR-ALT:27"
+        });
+
+        tuner._completeSourceRecoveryProbe(device, channel, "10.77.0.1:40772", 3);
+        await new Promise(resolve => setImmediate(resolve));
+
+        const state = tuner._sourceFailureState.get("10.77.0.1:40772");
+        assert.strictEqual(state.probing, false);
+        assert.ok(state.retryAt > Date.now());
+        assert.strictEqual(killed, true);
     });
 });

@@ -16,6 +16,7 @@
 import * as apid from "../api";
 import Client from "./client";
 import { IncomingMessage } from "http";
+import { REMOTE_EXIT_CHANNEL_UNAVAILABLE, REMOTE_EXIT_SOURCE_UNAVAILABLE } from "./remoteExitCodes";
 
 process.title = "Mirakurun: Remote";
 
@@ -49,10 +50,11 @@ client.getChannelStream(opt.type, opt.channel, opt.decode)
     .catch(err => {
         if (err.req) {
             console.error("remote:", "(error)", err.req.path, err.statusCode, err.statusMessage);
+            exit(err.statusCode === 404 ? REMOTE_EXIT_CHANNEL_UNAVAILABLE : REMOTE_EXIT_SOURCE_UNAVAILABLE);
         } else {
             console.error("remote:", "(error)", err.address, err.code);
+            exit(REMOTE_EXIT_SOURCE_UNAVAILABLE);
         }
-        exit(1);
     });
 
 function exit(code = 0) {

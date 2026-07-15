@@ -27,12 +27,19 @@ import Event from "./Event";
 import ChannelItem from "./ChannelItem";
 import TSFilter from "./TSFilter";
 import Client, { ProgramsQuery } from "../client";
+import { REMOTE_EXIT_CHANNEL_UNAVAILABLE } from "../remoteExitCodes";
 import { TSHandoffBuffer, TSHandoffOptions, TSHandoffProbe } from "./TSHandoff";
 
 const DEFAULT_FAILURE_COOLDOWN_SECONDS = 2;
 const REMOTE_STREAM_START_TIMEOUT_MS = 5000;
 
-export class TunerStartupError extends Error {}
+export type TunerStartupFailureScope = "channel" | "source";
+
+export class TunerStartupError extends Error {
+    constructor(message: string, readonly failureScope: TunerStartupFailureScope) {
+        super(message);
+    }
+}
 
 interface User extends common.User {
     _stream?: TSFilter | TSHandoffBuffer;
@@ -72,6 +79,7 @@ export default class TunerDevice extends EventEmitter {
     private _lastDevicePathReady: boolean = null;
     private _cooldownUntil = 0;
     private _lastCooldownLogUntil = 0;
+    private _lastDataAt = 0;
 
     constructor(private _index: number, private _config: apid.ConfigTunersItem) {
         super();
@@ -144,6 +152,10 @@ export default class TunerDevice extends EventEmitter {
 
     get isFault(): boolean {
         return this._isFault;
+    }
+
+    get lastDataAt(): number {
+        return this._lastDataAt;
     }
 
     get checkDevicePath(): string {
@@ -483,6 +495,7 @@ export default class TunerDevice extends EventEmitter {
         this._command = cmd;
         this._channel = ch;
         this._streamUsesMMTSDecoder = false;
+        this._lastDataAt = 0;
 
         if (this._config.dvbDevicePath) {
             const cat = child_process.spawn("cat", [this._config.dvbDevicePath]);
@@ -553,6 +566,7 @@ export default class TunerDevice extends EventEmitter {
     }
 
     private _streamOnData(chunk: Buffer): void {
+        this._lastDataAt = Date.now();
         if (this._canFanoutMMTSDecoder(this._channel) === true) {
             for (const user of this._users) {
                 if (user.disableMMTSDecoder === true) {
@@ -686,7 +700,7 @@ export default class TunerDevice extends EventEmitter {
                     this._index,
                     code,
                     signal
-                )));
+                ), code === REMOTE_EXIT_CHANNEL_UNAVAILABLE ? "channel" : "source"));
             };
             const onError = (err: Error) => {
                 cleanup();
@@ -694,7 +708,7 @@ export default class TunerDevice extends EventEmitter {
                     "TunerDevice#%d remote stream failed before first data (%s)",
                     this._index,
                     err.message
-                )));
+                ), "source"));
             };
             const timeout = setTimeout(() => {
                 cleanup();
@@ -702,7 +716,7 @@ export default class TunerDevice extends EventEmitter {
                     "TunerDevice#%d remote stream produced no data within %dms",
                     this._index,
                     REMOTE_STREAM_START_TIMEOUT_MS
-                )));
+                ), "channel"));
             }, REMOTE_STREAM_START_TIMEOUT_MS);
 
             tunerStream.once("data", onData);
