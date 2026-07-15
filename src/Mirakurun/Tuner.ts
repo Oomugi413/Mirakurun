@@ -25,6 +25,16 @@ import TSFilter from "./TSFilter";
 import TSDecoder from "./TSDecoder";
 import { TSHandoffOptions } from "./TSHandoff";
 
+export interface RemoteServiceSource {
+    tunerNames: string[];
+    services: apid.Service[];
+}
+
+export interface RemoteServicesResult {
+    sources: RemoteServiceSource[];
+    failedSourceCount: number;
+}
+
 export class Tuner {
     private _devices: TunerDevice[] = [];
     private _readyForJobPickedDeviceSet: Set<TunerDevice> = new Set();
@@ -117,24 +127,84 @@ export class Tuner {
         });
     }
 
-    async getRemoteServicesByType(type: apid.ChannelType): Promise<apid.Service[]> {
-        const remoteDevice = this._getRemoteOnlyDevice(this._getDevicesByType(type));
-        if (remoteDevice === null) {
+    async getRemoteServicesByType(type: apid.ChannelType): Promise<RemoteServicesResult> {
+        const devices = this._getDevicesByType(type);
+        if (this._isRemoteOnly(devices) === false) {
             throw new Error(`channel type \`${type}\` is not remote-only`);
         }
 
-        const Client = require("../client").default;
-        const client = new Client();
-        client.host = remoteDevice.config.remoteMirakurunHost;
-        client.port = remoteDevice.config.remoteMirakurunPort || 40772;
-        client.userAgent = "Mirakurun (Remote Service Sync)";
+        const remoteSources = new Map<string, {
+            host: string;
+            port: number;
+            tunerNames: string[];
+        }>();
 
-        const services = await client.getServices({
-            "channel.type": common.getTuningChannelType(type)
+        for (const device of devices) {
+            const host = device.config.remoteMirakurunHost;
+            const port = device.config.remoteMirakurunPort || 40772;
+            const key = JSON.stringify([host, port]);
+            const source = remoteSources.get(key);
+            if (source) {
+                source.tunerNames.push(device.config.name);
+            } else {
+                remoteSources.set(key, {
+                    host,
+                    port,
+                    tunerNames: [device.config.name]
+                });
+            }
+        }
+
+        const results = await Promise.allSettled([...remoteSources.values()].map(async source => {
+            const Client = require("../client").default;
+            const client = new Client();
+            client.host = source.host;
+            client.port = source.port;
+            client.userAgent = "Mirakurun (Remote Service Sync)";
+
+            const services = await client.getServices({
+                "channel.type": common.getTuningChannelType(type)
+            });
+            log.info(
+                "Fetched %d services for channel type %s from remote Mirakurun %s:%d (%s)",
+                services.length,
+                type,
+                source.host,
+                source.port,
+                source.tunerNames.join(",")
+            );
+
+            return {
+                tunerNames: source.tunerNames,
+                services
+            };
+        }));
+
+        const sources: RemoteServiceSource[] = [];
+        let failedSourceCount = 0;
+
+        results.forEach((result, index) => {
+            if (result.status === "fulfilled") {
+                sources.push(result.value);
+                return;
+            }
+
+            const source = [...remoteSources.values()][index];
+            failedSourceCount++;
+            log.warn(
+                "Failed to fetch services for channel type %s from remote Mirakurun %s:%d (%s) [%s]",
+                type,
+                source.host,
+                source.port,
+                source.tunerNames.join(","),
+                result.reason
+            );
         });
-        log.info("Fetched %d services for channel type %s from remote Mirakurun", services.length, type);
 
-        return services;
+        return {
+            sources,
+            failedSourceCount
+        };
     }
 
     initChannelStream(channel: ChannelItem, userReq: common.UserRequest, output: Writable): Promise<TSFilter> {
@@ -649,7 +719,7 @@ export class Tuner {
 
         for (const device of this._getDevicesByType(channel.type)) {
             // if channel specifies allowedTuners, only return matching tuners
-            if (channel.allowedTuners && channel.allowedTuners.length > 0) {
+            if (channel.allowedTuners !== undefined) {
                 if (channel.allowedTuners.includes(device.config.name)) {
                     devices.push(device);
                 }

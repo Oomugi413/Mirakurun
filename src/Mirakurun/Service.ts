@@ -343,18 +343,46 @@ export class Service {
     private async _syncRemoteType(type: apid.ChannelType): Promise<void> {
         log.info("ChannelType#'%s' remote service sync has started", type);
 
-        let services: apid.Service[];
+        let remoteServices: Awaited<ReturnType<typeof _.tuner.getRemoteServicesByType>>;
         try {
-            services = await _.tuner.getRemoteServicesByType(type);
+            remoteServices = await _.tuner.getRemoteServicesByType(type);
         } catch (e) {
             log.warn("ChannelType#'%s' remote service sync has failed [%s]", type, e);
             throw new Error("Remote service sync failed");
         }
 
+        if (remoteServices.sources.length === 0) {
+            log.warn("ChannelType#'%s' remote service sync has failed [no reachable remote sources]", type);
+            throw new Error("Remote service sync failed");
+        }
+
+        const allowedTunersByChannel = new Map<string, Set<string>>();
+        const servicesById = new Map<string, apid.Service>();
+
+        for (const source of remoteServices.sources) {
+            for (const service of source.services) {
+                if (!service.channel || !service.channel.channel) {
+                    continue;
+                }
+
+                let allowedTuners = allowedTunersByChannel.get(service.channel.channel);
+                if (!allowedTuners) {
+                    allowedTuners = new Set<string>();
+                    allowedTunersByChannel.set(service.channel.channel, allowedTuners);
+                }
+                source.tunerNames.forEach(name => allowedTuners.add(name));
+                servicesById.set(`${service.networkId}:${service.serviceId}`, service);
+            }
+        }
+
+        for (const channel of _.channel.findByType(type)) {
+            channel.setRemoteAllowedTuners([...(allowedTunersByChannel.get(channel.channel) || [])]);
+        }
+
         let channelCount = 0;
         let serviceCount = 0;
 
-        for (const service of services) {
+        for (const service of servicesById.values()) {
             if (!service.channel || !service.channel.channel) {
                 continue;
             }
@@ -369,6 +397,7 @@ export class Service {
                 _.channel.add(channel);
                 channelCount++;
             }
+            channel.setRemoteAllowedTuners([...(allowedTunersByChannel.get(channel.channel) || [])]);
 
             const item = this.get(service.networkId, service.serviceId);
             if (item !== null) {
@@ -395,8 +424,17 @@ export class Service {
             serviceCount++;
         }
 
-        log.info("ChannelType#'%s' remote service sync has finished (%d channels, %d services added)",
-            type, channelCount, serviceCount);
+        log.info(
+            "ChannelType#'%s' remote service sync has finished (%d sources, %d channels, %d services added)",
+            type,
+            remoteServices.sources.length,
+            channelCount,
+            serviceCount
+        );
+
+        if (remoteServices.failedSourceCount > 0) {
+            throw new Error(`Remote service sync incomplete (${remoteServices.failedSourceCount} sources failed)`);
+        }
     }
 
     private _queueCheckToAdd(channel: ChannelItem, serviceId: number): void {

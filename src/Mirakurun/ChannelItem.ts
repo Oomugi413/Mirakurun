@@ -27,6 +27,8 @@ export default class ChannelItem {
     readonly tsmfRelTs: number;
     readonly commandVars: apid.ConfigChannelsItem["commandVars"];
     allowedTuners: string[] | undefined;
+    #configuredAllowedTuners: string[] | undefined;
+    #remoteAllowedTuners: string[] | undefined;
 
     constructor(config: apid.ConfigChannelsItem) {
         this.name = config.name;
@@ -34,11 +36,21 @@ export default class ChannelItem {
         this.channel = config.channel;
         this.tsmfRelTs = config.tsmfRelTs;
         this.commandVars = config.commandVars;
-        this.allowedTuners = config.allowedTuners;
+        this.#configuredAllowedTuners = this._normalizeAllowedTuners(config.allowedTuners);
+        this.#remoteAllowedTuners = undefined;
+        this._updateAllowedTuners();
     }
 
     setAllowedTuners(allowedTuners: string[] | undefined): void {
-        this.allowedTuners = allowedTuners;
+        this.#configuredAllowedTuners = this._normalizeAllowedTuners(allowedTuners);
+        this._updateAllowedTuners();
+    }
+
+    setRemoteAllowedTuners(allowedTuners: string[] | undefined): void {
+        this.#remoteAllowedTuners = allowedTuners === undefined
+            ? undefined
+            : [...new Set(allowedTuners)];
+        this._updateAllowedTuners();
     }
 
     getServices(): ServiceItem[] {
@@ -47,5 +59,23 @@ export default class ChannelItem {
 
     getStream(user: common.User, output: stream.Writable): Promise<TSFilter> {
         return _.tuner.initChannelStream(this, user, output);
+    }
+
+    private _normalizeAllowedTuners(allowedTuners: string[] | undefined): string[] | undefined {
+        if (!allowedTuners || allowedTuners.length === 0) {
+            return undefined;
+        }
+
+        return [...new Set(allowedTuners)];
+    }
+
+    private _updateAllowedTuners(): void {
+        if (this.#remoteAllowedTuners === undefined) {
+            this.allowedTuners = this.#configuredAllowedTuners;
+        } else if (this.#configuredAllowedTuners === undefined) {
+            this.allowedTuners = this.#remoteAllowedTuners;
+        } else {
+            this.allowedTuners = this.#configuredAllowedTuners.filter(name => this.#remoteAllowedTuners.includes(name));
+        }
     }
 }
