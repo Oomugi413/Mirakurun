@@ -18,7 +18,7 @@ import * as common from "./common";
 import * as log from "./log";
 import * as apid from "../../api";
 import _ from "./_";
-import TunerDevice, { TunerDeviceStatus } from "./TunerDevice";
+import TunerDevice, { TunerDeviceStatus, TunerStartupError } from "./TunerDevice";
 import ChannelItem from "./ChannelItem";
 import ServiceItem from "./ServiceItem";
 import TSFilter from "./TSFilter";
@@ -35,10 +35,13 @@ export interface RemoteServicesResult {
     failedSourceCount: number;
 }
 
+const CHANNEL_FAILURE_COOLDOWN_MS = 30000;
+
 export class Tuner {
     private _devices: TunerDevice[] = [];
     private _readyForJobPickedDeviceSet: Set<TunerDevice> = new Set();
     private _handoffFailureUntil = new Map<string, number>();
+    private _channelFailureUntil = new Map<string, number>();
 
     constructor() {
         this._load();
@@ -461,9 +464,9 @@ export class Tuner {
                 return;
             }
 
-            this._devices.push(
-                new TunerDevice(i, tuner)
-            );
+            const device = new TunerDevice(i, tuner);
+            device.on("streamFailure", (channel: ChannelItem) => this._markChannelFailure(device, channel));
+            this._devices.push(device);
         });
 
         log.info("%s of %s tuners loaded", this._devices.length, tuners.length);
@@ -493,7 +496,21 @@ export class Tuner {
         while (tryCount > 0) {
             const disableDecoder = user.disableDecoder === true;
             const disableMMTSDecoder = user.disableMMTSDecoder === true;
-            const device = this._pickTunerDevice(devices, setting.channel, user.priority, disableDecoder, disableMMTSDecoder, recoverUnavailableTuners);
+            const candidateDevices = devices.filter(device => {
+                if (device.canReuseStream(setting.channel, disableDecoder, disableMMTSDecoder) === true) {
+                    return true;
+                }
+
+                return this._isChannelFailureCoolingDown(device, setting.channel) === false;
+            });
+            const device = this._pickTunerDevice(
+                candidateDevices,
+                setting.channel,
+                user.priority,
+                disableDecoder,
+                disableMMTSDecoder,
+                recoverUnavailableTuners
+            );
 
             if (device === null) {
                 if (handoffTried === false && await this._rebalanceForChannel(setting.channel, user.priority)) {
@@ -538,9 +555,20 @@ export class Tuner {
 
                 try {
                     await device.startStream(user, tsFilter, setting.channel, recoverUnavailableTuners);
+                    this._clearChannelFailure(device, setting.channel);
                     return tsFilter;
                 } catch (err) {
                     tsFilter.end();
+                    if (err instanceof TunerStartupError) {
+                        this._markChannelFailure(device, setting.channel);
+                        log.warn(
+                            "TunerDevice#%d failed to start `%s`; retrying with a different tuner [%s]",
+                            device.index,
+                            setting.channel.name,
+                            err.message
+                        );
+                        continue;
+                    }
                     throw err;
                 }
             }
@@ -712,6 +740,44 @@ export class Tuner {
             switchMarginMs: config.switchMarginMs ?? 100,
             syncTimeoutMs: config.syncTimeoutMs ?? 5000
         };
+    }
+
+    private _getChannelFailureKey(device: TunerDevice, channel: ChannelItem): string {
+        const deviceKey = device.isRemote
+            ? `${device.config.remoteMirakurunHost}:${device.config.remoteMirakurunPort || 40772}`
+            : `device:${device.index}`;
+
+        return `${deviceKey}:${channel.type}:${channel.channel}`;
+    }
+
+    private _isChannelFailureCoolingDown(device: TunerDevice, channel: ChannelItem): boolean {
+        const key = this._getChannelFailureKey(device, channel);
+        const failureUntil = this._channelFailureUntil.get(key) || 0;
+        if (failureUntil <= Date.now()) {
+            this._channelFailureUntil.delete(key);
+            return false;
+        }
+
+        return true;
+    }
+
+    private _markChannelFailure(device: TunerDevice, channel: ChannelItem): void {
+        if (!channel) {
+            return;
+        }
+
+        const key = this._getChannelFailureKey(device, channel);
+        this._channelFailureUntil.set(key, Date.now() + CHANNEL_FAILURE_COOLDOWN_MS);
+        log.warn(
+            "TunerDevice#%d will avoid channel `%s` for %d seconds after stream failure",
+            device.index,
+            channel.name,
+            CHANNEL_FAILURE_COOLDOWN_MS / 1000
+        );
+    }
+
+    private _clearChannelFailure(device: TunerDevice, channel: ChannelItem): void {
+        this._channelFailureUntil.delete(this._getChannelFailureKey(device, channel));
     }
 
     private _getDevicesByChannel(channel: ChannelItem): TunerDevice[] {

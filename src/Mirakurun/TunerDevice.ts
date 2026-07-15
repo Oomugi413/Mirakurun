@@ -30,6 +30,9 @@ import Client, { ProgramsQuery } from "../client";
 import { TSHandoffBuffer, TSHandoffOptions, TSHandoffProbe } from "./TSHandoff";
 
 const DEFAULT_FAILURE_COOLDOWN_SECONDS = 2;
+const REMOTE_STREAM_START_TIMEOUT_MS = 5000;
+
+export class TunerStartupError extends Error {}
 
 interface User extends common.User {
     _stream?: TSFilter | TSHandoffBuffer;
@@ -227,6 +230,7 @@ export default class TunerDevice extends EventEmitter {
 
     async startStream(user: User, stream: TSFilter, channel?: ChannelItem, recoverUnavailable = false): Promise<void> {
         log.debug("TunerDevice#%d start stream for user `%s` (priority=%d)...", this._index, user.id, user.priority);
+        let waitForRemoteStream = false;
 
         if (this._isAvailable === false) {
             if (recoverUnavailable === true && channel) {
@@ -256,6 +260,7 @@ export default class TunerDevice extends EventEmitter {
 
                     await this._kill(true);
                     this._spawn(channel, user.disableMMTSDecoder === true);
+                    waitForRemoteStream = this._isRemote;
                 } else if (
                     this._canFanoutMMTSDecoder(channel) === false &&
                     this._streamUsesMMTSDecoder !== this._shouldUseMMTSDecoder(channel, user.disableMMTSDecoder === true)
@@ -265,12 +270,14 @@ export default class TunerDevice extends EventEmitter {
                     }
                     await this._kill(true);
                     this._spawn(channel, user.disableMMTSDecoder === true);
+                    waitForRemoteStream = this._isRemote;
                 }
             } else {
                 if (this.canStartStream(channel) === false) {
                     throw new Error(util.format("TunerDevice#%d device path is not available", this._index));
                 }
                 this._spawn(channel, user.disableMMTSDecoder === true);
+                waitForRemoteStream = this._isRemote;
             }
         }
 
@@ -287,6 +294,19 @@ export default class TunerDevice extends EventEmitter {
             this.endStream(user);
         } else {
             stream.once("close", () => this.endStream(user));
+        }
+
+        if (waitForRemoteStream === true) {
+            try {
+                await this._waitForRemoteStream();
+            } catch (err) {
+                this._users.delete(user);
+                if (this._process && this._exited === false && this._closing === false) {
+                    await this._kill(true).catch(log.error);
+                }
+                this._updated();
+                throw err;
+            }
         }
 
         this._updated();
@@ -644,6 +664,53 @@ export default class TunerDevice extends EventEmitter {
         return !!ch && !this._config.dvbDevicePath && ch.type === "BS4K" && !!this._config.mmtsDecoder;
     }
 
+    private _waitForRemoteStream(): Promise<void> {
+        const tunerProcess = this._process;
+        const tunerStream = this._stream;
+
+        return new Promise<void>((resolve, reject) => {
+            const cleanup = () => {
+                clearTimeout(timeout);
+                tunerStream.removeListener("data", onData);
+                tunerProcess.removeListener("close", onClose);
+                tunerProcess.removeListener("error", onError);
+            };
+            const onData = () => {
+                cleanup();
+                resolve();
+            };
+            const onClose = (code: number, signal: NodeJS.Signals | null) => {
+                cleanup();
+                reject(new TunerStartupError(util.format(
+                    "TunerDevice#%d remote stream closed before first data (code=%s, signal=%s)",
+                    this._index,
+                    code,
+                    signal
+                )));
+            };
+            const onError = (err: Error) => {
+                cleanup();
+                reject(new TunerStartupError(util.format(
+                    "TunerDevice#%d remote stream failed before first data (%s)",
+                    this._index,
+                    err.message
+                )));
+            };
+            const timeout = setTimeout(() => {
+                cleanup();
+                reject(new TunerStartupError(util.format(
+                    "TunerDevice#%d remote stream produced no data within %dms",
+                    this._index,
+                    REMOTE_STREAM_START_TIMEOUT_MS
+                )));
+            }, REMOTE_STREAM_START_TIMEOUT_MS);
+
+            tunerStream.once("data", onData);
+            tunerProcess.once("close", onClose);
+            tunerProcess.once("error", onError);
+        });
+    }
+
     private _isDevicePathReady(): boolean {
         const path = this.checkDevicePath;
         if (!path) {
@@ -743,13 +810,22 @@ export default class TunerDevice extends EventEmitter {
         this._stream = null;
 
         if (this._closing === false && this._users.size !== 0) {
-            log.warn("TunerDevice#%d respawning because request has not closed", this._index);
-            ++status.errorCount.tunerDeviceRespawn;
+            if (this._isRemote === true) {
+                log.warn("TunerDevice#%d remote stream failed; ending users instead of respawning on the same tuner", this._index);
+                this.emit("streamFailure", this._channel);
+                for (const user of this._users) {
+                    user._stream.end();
+                }
+                this._users.clear();
+            } else {
+                log.warn("TunerDevice#%d respawning because request has not closed", this._index);
+                ++status.errorCount.tunerDeviceRespawn;
 
-            const users = [...this._users];
-            const disableMMTSDecoder = users.length > 0 && users.every(user => user.disableMMTSDecoder === true);
-            this._spawn(this._channel, disableMMTSDecoder);
-            return;
+                const users = [...this._users];
+                const disableMMTSDecoder = users.length > 0 && users.every(user => user.disableMMTSDecoder === true);
+                this._spawn(this._channel, disableMMTSDecoder);
+                return;
+            }
         }
 
         this._fatalCount = 0;
