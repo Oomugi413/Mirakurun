@@ -32,6 +32,7 @@ import _ from "./_";
 import { createRPCServer, initRPCNotifier } from "./rpc";
 
 const pkg = require("../../package.json");
+const NETWORK_INTERFACE_REFRESH_INTERVAL_MS = 5000;
 
 export class Server {
     /** used for test */
@@ -40,6 +41,8 @@ export class Server {
     private _isRunning = false;
     private _servers = new Set<http.Server>();
     private _rpcs = new Set<RPCServer>();
+    private _listeningAddresses = new Set<string>();
+    private _networkInterfaceRefreshTimer: NodeJS.Timeout;
 
     get isRunning() {
         return this._isRunning;
@@ -231,10 +234,19 @@ export class Server {
                     });
                 });
             }
+
+            this._listeningAddresses.add(address);
         }
 
         // event notifications for RPC
         initRPCNotifier(this._rpcs);
+
+        if (typeof serverConfig.port === "number" && !this.testMode) {
+            this._networkInterfaceRefreshTimer = setInterval(() => {
+                this._refreshNetworkListeners(app, serverConfig.port).catch(log.error);
+            }, NETWORK_INTERFACE_REFRESH_INTERVAL_MS);
+            this._networkInterfaceRefreshTimer.unref();
+        }
 
         log.info("RPC interface is enabled");
     }
@@ -243,6 +255,9 @@ export class Server {
         if (this._isRunning === false) {
             return;
         }
+
+        this._isRunning = false;
+        clearInterval(this._networkInterfaceRefreshTimer);
 
         for (const rpc of this._rpcs) {
             await rpc.close();
@@ -255,8 +270,68 @@ export class Server {
 
         this._rpcs.clear();
         this._servers.clear();
+        this._listeningAddresses.clear();
+    }
 
-        this._isRunning = false;
+    private async _refreshNetworkListeners(app: express.Express, port: number): Promise<void> {
+        if (this._isRunning === false) {
+            return;
+        }
+
+        const addresses = system.getIPv4AddressesForListen();
+        if (_.config.server.disableIPv6 !== true) {
+            addresses.push(...system.getIPv6AddressesForListen());
+        }
+
+        for (const address of addresses) {
+            if (this._listeningAddresses.has(address) === true) {
+                continue;
+            }
+
+            this._listeningAddresses.add(address);
+
+            const server = http.createServer(app);
+            server.timeout = 1000 * 15; // 15 sec.
+
+            try {
+                await new Promise<void>((resolve, reject) => {
+                    const onError = (err: Error) => {
+                        server.removeListener("listening", onListening);
+                        reject(err);
+                    };
+                    const onListening = () => {
+                        server.removeListener("error", onError);
+                        resolve();
+                    };
+
+                    server.once("error", onError);
+                    server.once("listening", onListening);
+                    server.listen(port, address);
+                });
+            } catch (err) {
+                this._listeningAddresses.delete(address);
+                log.warn("failed to listen on `%s`: %s", address, err.message);
+                continue;
+            }
+
+            if (this.isRunning === false) {
+                this._listeningAddresses.delete(address);
+                await new Promise<void>(resolve => server.close(() => resolve()));
+                return;
+            }
+
+            this._servers.add(server);
+            this._rpcs.add(createRPCServer(server));
+
+            const serverAddr = server.address();
+            const listeningPort = typeof serverAddr === "string" ? port : serverAddr.port;
+            if (address.includes(":")) {
+                const [addr, iface] = address.split("%");
+                log.info("listening on http://[%s]:%d (%s)", addr, listeningPort, iface);
+            } else {
+                log.info("listening on http://%s:%d", address, listeningPort);
+            }
+        }
     }
 }
 
