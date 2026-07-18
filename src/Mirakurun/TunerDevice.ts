@@ -307,31 +307,30 @@ export default class TunerDevice extends EventEmitter {
         } else {
             if (ch.type === "BS4K") {
                 const parsed = common.parseCommandForSpawn(this._config.mmtsDecoder);
-                this._mmtsDecoderProcess = child_process.spawn(parsed.command, parsed.args);
+                const mmtsDecoderProcess = child_process.spawn(parsed.command, parsed.args);
+                this._mmtsDecoderProcess = mmtsDecoderProcess;
 
-                this._mmtsDecoderProcess.once("error", (err) => {
-                    log.error("TunerDevice#%d mmtsDecoder process error `%s` (pid=%d)", this._index, err.name, this._mmtsDecoderProcess.pid);
+                mmtsDecoderProcess.once("error", (err) => {
+                    log.error("TunerDevice#%d mmtsDecoder process error `%s` (pid=%d)", this._index, err.name, mmtsDecoderProcess.pid);
 
-                    this._kill(false);
-                });
-
-                this._mmtsDecoderProcess.once("exit", () => {
-                    this._mmtsDecoderProcess.stdin.end();
-                });
-
-                this._mmtsDecoderProcess.once("close", (code, signal) => {
-                    log.debug(
-                        "TunerDevice#%d mmtsDecoder process has closed with code=%d by signal `%s` (pid=%d)",
-                        this._index, code, signal, this._mmtsDecoderProcess.pid
-                    );
-
-                    if (this._exited === false) {
-                        this._kill(false);
+                    if (this._mmtsDecoderProcess === mmtsDecoderProcess) {
+                        this._kill(false).catch(log.error);
                     }
                 });
 
-                this._process.stdout.pipe(this._mmtsDecoderProcess.stdin);
-                this._stream = this._mmtsDecoderProcess.stdout;
+                mmtsDecoderProcess.once("close", (code, signal) => {
+                    log.debug(
+                        "TunerDevice#%d mmtsDecoder process has closed with code=%d by signal `%s` (pid=%d)",
+                        this._index, code, signal, mmtsDecoderProcess.pid
+                    );
+
+                    if (this._mmtsDecoderProcess === mmtsDecoderProcess && this._exited === false) {
+                        this._kill(false).catch(log.error);
+                    }
+                });
+
+                this._process.stdout.pipe(mmtsDecoderProcess.stdin);
+                this._stream = mmtsDecoderProcess.stdout;
             } else {
                 this._stream = this._process.stdout;
             }
