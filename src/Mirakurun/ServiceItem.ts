@@ -136,6 +136,15 @@ export default class ServiceItem {
         return this._channel;
     }
 
+    set channel(channel: ChannelItem) {
+        if (this._channel !== channel) {
+            this._channel = channel;
+
+            _.service.save();
+            this._updated();
+        }
+    }
+
     export(): apid.Service {
         const ret: apid.Service = {
             id: this._id,

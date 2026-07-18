@@ -515,6 +515,10 @@ export class Service {
         services.forEach(service => {
             const item = this.get(service.networkId, service.serviceId);
             if (item !== null) {
+                // A remote service sync may have registered the same service under
+                // GR-ALT before the local channel scan finishes. Prefer the channel
+                // that actually produced the service during a direct scan.
+                item.channel = channel;
                 item.name = service.name;
                 item.type = service.type;
                 if (service.logoId > -1) {
