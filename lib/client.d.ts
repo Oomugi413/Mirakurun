@@ -71,6 +71,7 @@ export declare class Client {
     priority: number;
     host: string;
     port: number;
+    https: boolean;
     socketPath: string;
     agent: http.Agent | boolean;
     userAgent: string;
