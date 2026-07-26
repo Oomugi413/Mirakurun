@@ -24,7 +24,7 @@
   ],
   "repository": {
     "type": "git",
-    "url": "https://github.com/stuayu/Mirakurun.git"
+    "url": "git+https://github.com/stuayu/Mirakurun.git"
   },
   "bugs": {
     "url": "https://github.com/Chinachu/Mirakurun/issues"

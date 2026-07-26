@@ -17,18 +17,17 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           path: Mirakurun
 
       - name: Use Node.js ${{ matrix.node-version }}
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
           node-version: ${{ matrix.node-version }}
 
       - name: Mirakurun build and install
         working-directory: Mirakurun
-        continue-on-error: true # npm audit fixでエラーになるのを回避
         run: |
           npm install
           npm run build
@@ -38,7 +37,7 @@ jobs:
           7z a -t7z -mx=9 -m0=lzma2 -md=256m -mfb=273 -ms=on Mirakurun-${{ matrix.os }}-${{ matrix.node-version }}.7z ./Mirakurun
 
       - name: Upload Project as Artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: Mirakurun-${{ matrix.os }}-${{ matrix.node-version }}.7z
           path: Mirakurun-${{ matrix.os }}-${{ matrix.node-version }}.7z
