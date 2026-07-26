@@ -69,7 +69,7 @@ export const AboutView: React.FC = () => {
                         <Divider />
 
                         <div className="about-info">
-                            <table className="bp5-html-table bp5-html-table-striped bp5-html-table-condensed info-table">
+                            <table className="bp6-html-table bp6-html-table-striped bp6-html-table-condensed info-table">
                                 <tbody>
                                     <tr>
                                         <td>Current</td>
@@ -148,7 +148,7 @@ export const AboutView: React.FC = () => {
                                 <div className="section">
                                     <H5>
                                         Backers{" "}
-                                        <span className="bp5-text-muted text-small">
+                                        <span className="bp6-text-muted text-small">
                                             [<a href="https://opencollective.com/Mirakurun#backer" target="_blank" rel="noreferrer">Become a backer</a>]
                                         </span>
                                     </H5>
@@ -165,7 +165,7 @@ export const AboutView: React.FC = () => {
                                 <div className="section">
                                     <H5>
                                         Sponsors{" "}
-                                        <span className="bp5-text-muted text-small">
+                                        <span className="bp6-text-muted text-small">
                                             [<a href="https://opencollective.com/Mirakurun#sponsor" target="_blank" rel="noreferrer">Become a sponsor</a>]
                                         </span>
                                     </H5>

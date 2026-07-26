@@ -453,7 +453,7 @@ export const TunersConfigView: React.FC = () => {
             >
                 <DialogBody>
                     <p>設定を保存しますか？</p>
-                    <p className="bp5-text-muted">適用するには再起動が必要です。</p>
+                    <p className="bp6-text-muted">適用するには再起動が必要です。</p>
                 </DialogBody>
                 <DialogFooter
                     actions={

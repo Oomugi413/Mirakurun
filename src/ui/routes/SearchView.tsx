@@ -30,7 +30,7 @@ export const SearchView: React.FC = () => {
 
     const [nonIdealState, setNonIdealState] = useState<NonIdealStateProps>(null);
     const [programs, setPrograms] = useState<Program[]>(null);
-    const [result, setResult] = useState<JSX.Element[]>([]);
+    const [result, setResult] = useState<React.JSX.Element[]>([]);
     const [title, setTitle] = useState<string>("検索");
     // const isLoading = !programs && !error;
 
@@ -103,7 +103,7 @@ export const SearchView: React.FC = () => {
             return a.startAt - b.startAt;
         });
 
-        const _result: JSX.Element[] = filteredPrograms.map(createResultItem);
+        const _result: React.JSX.Element[] = filteredPrograms.map(createResultItem);
 
         setTitle(`検索 "${query}" (${_result.length}件)`);
         setResult(_result);
@@ -126,7 +126,7 @@ export const SearchView: React.FC = () => {
                             },
                             {
                                 text: "検索",
-                                className: `heading-title ${isLoading ? "bp5-skeleton" : ""}`.trim(),
+                                className: `heading-title ${isLoading ? "bp6-skeleton" : ""}`.trim(),
                             }
                         ]} />
                     </Navbar.Heading>

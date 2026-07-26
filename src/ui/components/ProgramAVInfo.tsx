@@ -26,7 +26,7 @@ type ProgramAVInfoProps = {
 export const ProgramAVInfo: React.FC<ProgramAVInfoProps> = ({ video, audios }) => {
     // console.debug("components", "ProgramAVInfo");
 
-    const labels: JSX.Element[] = [];
+    const labels: React.JSX.Element[] = [];
 
     if (video) {
         if (video.type !== "mpeg2") {

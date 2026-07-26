@@ -1,4 +1,4 @@
-import EventEmitter from "eventemitter3";
+import { EventEmitter } from "eventemitter3";
 import * as apid from "../../api";
 export declare class Event extends EventEmitter {
     static get log(): apid.Event[];

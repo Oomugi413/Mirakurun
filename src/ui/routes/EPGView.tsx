@@ -16,7 +16,7 @@
 import * as React from "react";
 import { useState, useEffect, useMemo } from "react";
 import { detectAreaFromServices } from "../modules/constants";
-import { useParams } from "react-router-dom";
+import { useParams } from "react-router";
 import { Alignment, Button, Navbar, Tabs, Tab, HTMLSelect, Breadcrumbs } from "@blueprintjs/core";
 import { DateTime } from "luxon";
 
@@ -119,7 +119,7 @@ export const EPGView: React.FC = () => {
         ui.setTitle("EPG");
     }
 
-    const toolbarTabs: JSX.Element[] = [];
+    const toolbarTabs: React.JSX.Element[] = [];
     if (date >= startDate && date <= endDate && !globalServiceId) {
         for (let i = 0; i <= 7; i++) {
             const cur = startDate.plus({ days: i });
@@ -154,7 +154,7 @@ export const EPGView: React.FC = () => {
                                     navigate(to)
                                 } },
                                 { text: "週間" },
-                                { text: "放送サービス...", className: "heading-title bp5-skeleton" }
+                                { text: "放送サービス...", className: "heading-title bp6-skeleton" }
                             ]} />
                             : "EPG 番組表"
                         }
@@ -190,7 +190,7 @@ export const EPGView: React.FC = () => {
                             <Navbar.Divider />
 
                             <HTMLSelect
-                                className="bp5-outlined"
+                                className="bp6-outlined"
                                 options={[
                                     { value: "ALL", label: "全波" },
                                     ...terrTypeOptions,

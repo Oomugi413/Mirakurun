@@ -15,7 +15,7 @@
 */
 import * as React from "react";
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link } from "react-router";
 import { Button } from "@blueprintjs/core";
 import { DateTime } from "luxon";
 import { getGlobalServiceId } from "../modules/common";

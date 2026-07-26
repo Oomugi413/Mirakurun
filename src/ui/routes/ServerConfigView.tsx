@@ -35,7 +35,7 @@ import {
     TextArea
 } from "@blueprintjs/core";
 import equal from "fast-deep-equal";
-import { Validator as IPValidator } from "ip-num/Validator";
+import { Validator as IPValidator } from "ip-num";
 import { state } from "../modules/state";
 import * as ui from "../modules/ui";
 import { ConfigServer, LogLevel } from "../../../api.d";
@@ -530,7 +530,7 @@ export const ServerConfigView: React.FC = () => {
             >
                 <DialogBody>
                     <p>設定を保存しますか？</p>
-                    <p className="bp5-text-muted">適用するには再起動が必要です。</p>
+                    <p className="bp6-text-muted">適用するには再起動が必要です。</p>
                 </DialogBody>
                 <DialogFooter
                     actions={

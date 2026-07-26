@@ -64,8 +64,8 @@ export const ProgramTitle: React.FC<ProgramTitleProps> = ({ program }) => {
     }, [program.name, program.description]);
 
     const labels = useMemo(() => {
-        const pre: JSX.Element[] = [];
-        const post: JSX.Element[] = [];
+        const pre: React.JSX.Element[] = [];
+        const post: React.JSX.Element[] = [];
 
         for (const attribute of attributes) {
             /* if (attribute === "無") {

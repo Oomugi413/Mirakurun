@@ -15,7 +15,7 @@
 */
 import { EventEmitter } from "eventemitter3";
 import { DateTime } from "luxon";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router";
 import { Client as RPCClient } from "jsonrpc2-ws";
 import { setSchedule } from "./at";
 import * as ui from "./ui";

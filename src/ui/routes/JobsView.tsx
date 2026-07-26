@@ -35,11 +35,11 @@ export const JobsView: React.FC = () => {
     const [standbyIsOpen, setStandbyIsOpen] = useLocalStorageState<boolean>("JobsView.standbyIsOpen", true);
     const [runningIsOpen, setRunningIsOpen] = useLocalStorageState<boolean>("JobsView.runningIsOpen", true);
     const [finishedIsOpen, setFinishedIsOpen] = useLocalStorageState<boolean>("JobsView.finishedIsOpen", true);
-    const [jobScheduleItems, setJobScheduleItems] = useState<JSX.Element[]>([]);
-    const [queuedJobItems, setQueuedJobItems] = useState<JSX.Element[]>([]);
-    const [standbyJobItems, setStandbyJobItems] = useState<JSX.Element[]>([]);
-    const [runningJobItems, setRunningJobItems] = useState<JSX.Element[]>([]);
-    const [finishedJobItems, setFinishedJobItems] = useState<JSX.Element[]>([]);
+    const [jobScheduleItems, setJobScheduleItems] = useState<React.JSX.Element[]>([]);
+    const [queuedJobItems, setQueuedJobItems] = useState<React.JSX.Element[]>([]);
+    const [standbyJobItems, setStandbyJobItems] = useState<React.JSX.Element[]>([]);
+    const [runningJobItems, setRunningJobItems] = useState<React.JSX.Element[]>([]);
+    const [finishedJobItems, setFinishedJobItems] = useState<React.JSX.Element[]>([]);
     const [title, setTitle] = useState<string>("ジョブ");
     // const isLoading = !programs && !error;
 
@@ -211,7 +211,7 @@ export const JobsView: React.FC = () => {
         return (
             <Navbar key={jobSchedule.key}>
                 <Navbar.Group align={Alignment.START}>
-                    <code className="bp5-code">
+                    <code className="bp6-code">
                         {jobSchedule.schedule}
                     </code>
                     <span>
@@ -278,7 +278,7 @@ export const JobsView: React.FC = () => {
             <Navbar key={job.id}>
                 <Navbar.Group align={Alignment.START}>
                     <Tooltip content={detailTooltip} position="right">
-                        <span className="bp5-text-muted" style={{ cursor: "help" }} title="詳細">
+                        <span className="bp6-text-muted" style={{ cursor: "help" }} title="詳細">
                             {job.id.split(".").slice(-1)[0]}
                         </span>
                     </Tooltip>
@@ -288,13 +288,13 @@ export const JobsView: React.FC = () => {
                 </Navbar.Group>
 
                 <Navbar.Group align={Alignment.END}>
-                    <span className="bp5-text-muted" style={{ marginLeft: "0.5rem" }}>
+                    <span className="bp6-text-muted" style={{ marginLeft: "0.5rem" }}>
                         <Icon icon={statusIcon} intent={statusIntent} />
                         <span style={{ marginLeft: "0.35rem" }}>{statusLabel}</span>
                     </span>
 
                     <Tooltip content={DateTime.fromMillis(job.updatedAt).toFormat("yyyy/MM/dd HH:mm:ss")}>
-                        <span className="bp5-text-muted">
+                        <span className="bp6-text-muted">
                             {DateTime.fromMillis(job.updatedAt).toRelative()}
                         </span>
                     </Tooltip>
@@ -446,7 +446,7 @@ export const JobsView: React.FC = () => {
             >
                 <DialogBody>
                     {actionError && (
-                        <div className="bp5-text-intent-danger" style={{ marginBottom: "16px" }}>
+                        <div className="bp6-text-intent-danger" style={{ marginBottom: "16px" }}>
                             {actionError}
                         </div>
                     )}

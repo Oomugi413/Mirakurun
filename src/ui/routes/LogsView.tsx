@@ -23,18 +23,18 @@ import * as ui from "../modules/ui";
 import "./LogsView.sass";
 
 let _itemId = 0;
-let logListCache: JSX.Element[] = [];
+let logListCache: React.JSX.Element[] = [];
 
 export const LogsView: React.FC = () => {
     console.debug("routes", "LogsView");
 
     ui.setTitle("ログ");
 
-    const [logList, setLogList] = useState<JSX.Element[]>([]);
+    const [logList, setLogList] = useState<React.JSX.Element[]>([]);
     const latestRef = useRef<HTMLDivElement>(null);
 
     const onLogs = (lines: string[], unshift: boolean) => {
-        const newList: JSX.Element[] = [];
+        const newList: React.JSX.Element[] = [];
         for (const line of lines) {
             const parsed = line.match(/^[0-9.T:+-]+ ([a-z]+): /);
             const level = parsed ? parsed[1] : "other";

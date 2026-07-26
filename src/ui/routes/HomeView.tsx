@@ -15,7 +15,7 @@
 */
 import * as React from "react";
 import { useState, useEffect, useCallback } from "react";
-import { Link } from "react-router-dom";
+import { Link } from "react-router";
 import {
     Alignment,
     Breadcrumbs,
@@ -169,7 +169,7 @@ const ServicesSection: React.FC<{
                                     {
                                         status?.epg.gatheringNetworks.includes(service.networkId) && <Icon icon="refresh" className="color-warning" size={12} /> ||
                                         service.epgReady && <Icon icon="tick" className="color-epg-ready" size={12} /> ||
-                                        <Icon icon="time" className="bp5-text-muted" size={12} />
+                                        <Icon icon="time" className="bp6-text-muted" size={12} />
                                     }
                                 </span>
                             </Link>
@@ -219,7 +219,7 @@ const StreamInfoTable: React.FC<{
     }
 
     return (
-        <table className="bp5-html-table bp5-html-table-striped bp5-html-table-condensed stream-info-table">
+        <table className="bp6-html-table bp6-html-table-striped bp6-html-table-condensed stream-info-table">
             <thead>
                 <tr>
                     <th>PID</th>
@@ -292,11 +292,11 @@ const TunersSection: React.FC<{
         if (tuner.isFault) {
             tunerIcon = <Icon icon="error" intent="danger" />;
         } else if (!tuner.isAvailable) {
-            tunerIcon = <Icon icon="disable" className="bp5-text-muted" />;
+            tunerIcon = <Icon icon="disable" className="bp6-text-muted" />;
         } else if (tuner.isUsing) {
             tunerIcon = <Icon icon="dot" className="color-epg-ready" />;
         } else {
-            tunerIcon = <Icon icon="dot" className="bp5-text-muted" />;
+            tunerIcon = <Icon icon="dot" className="bp6-text-muted" />;
         }
 
         const childNodes: TreeNodeInfo[] = [];
@@ -305,11 +305,11 @@ const TunersSection: React.FC<{
         if (tuner.command || tuner.pid) {
             childNodes.push({
                 id: `tuner-${tuner.index}-device`,
-                icon: <Icon icon="console" className="bp5-text-muted" />,
+                icon: <Icon icon="console" className="bp6-text-muted" />,
                 label: (
                     <span className="tuner-device-info">
                         <span>{tuner.command || "-"}</span>
-                        {tuner.pid ? <span className="bp5-text-muted"> (pid={tuner.pid})</span> : null}
+                        {tuner.pid ? <span className="bp6-text-muted"> (pid={tuner.pid})</span> : null}
                         {tuner.command && (
                             <Button
                                 variant="minimal"
@@ -333,21 +333,21 @@ const TunersSection: React.FC<{
             const user = tuner.users[i];
             const isMirakurun = /Mirakurun/.test(user.id);
 
-            const userInfoItems: JSX.Element[] = [
+            const userInfoItems: React.JSX.Element[] = [
                 <span key="priority" className="tuner-user-info-item">
-                    <Icon icon="sort" className="bp5-text-muted" size={12} />
+                    <Icon icon="sort" className="bp6-text-muted" size={12} />
                     <span>{user.priority}</span>
                 </span>,
                 <span key="user" className="tuner-user-info-item">
-                    <Icon icon={isMirakurun ? "cog" : "person"} className="bp5-text-muted" size={12} />
+                    <Icon icon={isMirakurun ? "cog" : "person"} className="bp6-text-muted" size={12} />
                     <span>{user.id}</span>
                 </span>,
                 <span key="ch" className="tuner-user-info-item">
-                    <Icon icon="mobile-video" className="bp5-text-muted" size={12} />
+                    <Icon icon="mobile-video" className="bp6-text-muted" size={12} />
                     <span>{user.streamSetting?.channel?.[0]?.type} / {user.streamSetting?.channel?.[0]?.channel}</span>
                 </span>,
                 <span key="sid" className="tuner-user-info-item">
-                    <Icon icon="filter" className="bp5-text-muted" size={12} />
+                    <Icon icon="filter" className="bp6-text-muted" size={12} />
                     <span>{user.streamSetting?.serviceId ? `0x${user.streamSetting.serviceId.toString(16).toUpperCase()} (${user.streamSetting.serviceId})` : "-"}</span>
                 </span>
             ];
@@ -356,7 +356,7 @@ const TunersSection: React.FC<{
             if (!isEmptyStreamInfo(user.streamInfo)) {
                 userInfoItems.push(
                     <span key="stream" className="tuner-user-info-item">
-                        <Icon icon="cube" className="bp5-text-muted" size={12} />
+                        <Icon icon="cube" className="bp6-text-muted" size={12} />
                         <a
                             className="stream-info-link"
                             onClick={(e) => {
@@ -451,7 +451,7 @@ const TunersSection: React.FC<{
                 <DialogBody>
                     {streamDetail && (
                         <>
-                            <p className="bp5-text-muted">{streamDetail.userId}</p>
+                            <p className="bp6-text-muted">{streamDetail.userId}</p>
                             <StreamInfoTable
                                 userId={streamDetail.userId}
                                 tuners={tunersEx}

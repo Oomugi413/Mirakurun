@@ -15,7 +15,7 @@
 */
 import * as React from "react";
 import { useState, useEffect } from "react";
-import { useParams } from "react-router-dom";
+import { useParams } from "react-router";
 import { Alignment, Button, Breadcrumbs, Navbar, NonIdealState } from "@blueprintjs/core";
 import { DateTime } from "luxon";
 import { getGlobalServiceId, getIdWithHex } from "../modules/common";
@@ -117,7 +117,7 @@ export const ProgramView: React.FC = () => {
                                 }
                             },
                             {
-                                className: isLoading ? "bp5-skeleton" : "",
+                                className: isLoading ? "bp6-skeleton" : "",
                                 text: isLoading ? "Loading................................." : (error ? "エラー" : (
                                     program ? <ProgramTitle program={program} /> : <></>
                                 ))
@@ -128,7 +128,7 @@ export const ProgramView: React.FC = () => {
 
                 <Navbar.Group align={Alignment.END}>
                     {isLoading && <>
-                        <Button className="bp5-skeleton" text="Loading............................" />
+                        <Button className="bp6-skeleton" text="Loading............................" />
                     </>}
 
                     {program && <>

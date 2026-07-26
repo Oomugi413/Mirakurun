@@ -48,7 +48,7 @@ export const WatchButton: React.FC<WatchButtonProps> = ({ globalServiceId, popov
     const streamEndpoint = `${location.protocol}//${location.host}/api/services/${globalServiceId}/stream`;
 
     return (<>
-        <ButtonGroup className={loading ? "bp5-skeleton" : ""}>
+        <ButtonGroup className={loading ? "bp6-skeleton" : ""}>
             <Button {...props}
                 text="視聴テスト"
                 icon="play"

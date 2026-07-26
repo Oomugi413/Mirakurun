@@ -22,7 +22,7 @@ $timetable-border-color: colors.$gray5
   > *
     position: absolute
 
-  > button.bp5-button
+  > button.bp6-button
     z-index: 2
     backdrop-filter: blur(8px) brightness(1.1)
     border-color: colors.$gray1 !important
@@ -30,7 +30,7 @@ $timetable-border-color: colors.$gray5
     box-shadow: 0 0 0 1px rgba(colors.$white, 0.5) !important
     color: colors.$black !important
 
-    .bp5-icon > svg:not([fill])
+    .bp6-icon > svg:not([fill])
       color: colors.$gray1 !important
 
     &.jump-to-timeline
@@ -49,7 +49,7 @@ $timetable-border-color: colors.$gray5
     margin-left: 0px // for scroll
     background: colors.$dark-gray5
 
-    .bp5-dark &
+    .bp6-dark &
       background: colors.$dark-gray1
 
   .epg-table-header-item
@@ -68,7 +68,7 @@ $timetable-border-color: colors.$gray5
     &.date
       font-weight: 600
 
-    .bp5-dark &
+    .bp6-dark &
       color: colors.$light-gray3
 
     &:last-child
@@ -81,7 +81,7 @@ $timetable-border-color: colors.$gray5
       &:hover
         background: color.adjust(colors.$dark-gray5, $lightness: -8%)
 
-        .bp5-dark &
+        .bp6-dark &
           background: color.adjust(colors.$dark-gray1, $lightness: 7%)
 
     > img,
@@ -100,7 +100,7 @@ $timetable-border-color: colors.$gray5
       font-feature-settings: "palt" 1
       overflow: hidden
 
-      &.bp5-skeleton
+      &.bp6-skeleton
         display: inline-block
         width: 100px
         height: 14px
@@ -219,16 +219,16 @@ $timetable-border-color: colors.$gray5
     bottom: 0
     overflow: auto
 
-    > .bp5-spinner
+    > .bp6-spinner
       position: absolute
       top: calc(50% - 20px)
       left: calc(50% - 20px)
       opacity: 0
 
-      .bp5-spinner-track
+      .bp6-spinner-track
         stroke: rgba(95, 107, 124, 0.2)
 
-      .bp5-spinner-head
+      .bp6-spinner-head
         stroke: rgba(95, 107, 124, 0.8)
 
   .timetable-col
@@ -262,7 +262,7 @@ $timetable-border-color: colors.$gray5
     &:not(.no-data):hover
       filter: brightness(0.97)
 
-    &.bp5-active
+    &.bp6-active
       z-index: 2
       box-shadow: inset 0 0 0 4px rgba(colors.$black, 0.15)
 

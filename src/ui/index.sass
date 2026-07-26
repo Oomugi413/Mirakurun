@@ -1,23 +1,23 @@
 @use "~@blueprintjs/colors/lib/scss/colors"
 @use "./vars"
 
-.bp5-spinner
+.bp6-spinner
   animation: 0.2s ease 0.3s 1 normal forwards running fade-in
 
-.bp5-navbar
+.bp6-navbar
   display: flex
 
-  .bp5-navbar-group
-    &.bp5-align-left
+  .bp6-navbar-group
+    &.bp6-align-left
       flex: 1 1 0
 
       &,
-      .bp5-navbar-heading
+      .bp6-navbar-heading
         overflow: hidden
         text-overflow: ellipsis
         white-space: nowrap
 
-.bp5-non-ideal-state
+.bp6-non-ideal-state
   position: absolute
   z-index: 2
   top: 0
@@ -29,7 +29,7 @@
   overflow: auto
   background: colors.$light-gray4
 
-  .bp5-dark &
+  .bp6-dark &
     background: colors.$dark-gray4
 
 body
@@ -39,16 +39,16 @@ body
   &.indiana-dragging
     cursor: default
 
-.bp5-button > .bp5-button-text,
-.bp5-menu-item
+.bp6-button > .bp6-button-text,
+.bp6-menu-item
   font-family: vars.$font-ui
 
 select,
 button,
-.bp5-tabs
+.bp6-tabs
   user-select: none
 
-button:not(.bp5-button)
+button:not(.bp6-button)
   border: none
   background: inherit
 
@@ -156,7 +156,7 @@ a[target="_blank"]::after
   left: 0
   background: colors.$light-gray4
 
-  .bp5-dark &
+  .bp6-dark &
     background: colors.$dark-gray4
 
   > .route
@@ -169,12 +169,12 @@ a[target="_blank"]::after
     flex-direction: column
     flex-grow: 1
 
-    > .toolbar.bp5-navbar
+    > .toolbar.bp6-navbar
       z-index: 9
       background: none
       box-shadow: none
 
-      .bp5-navbar-heading
+      .bp6-navbar-heading
         font-weight: 400
         font-size: 18px
 
@@ -187,18 +187,18 @@ a[target="_blank"]::after
             font-size: 12px
             vertical-align: 14%
 
-        .bp5-breadcrumb
+        .bp6-breadcrumb
           font-weight: inherit
           font-size: inherit
 
-      > .bp5-navbar-group
-        &.bp5-align-right
+      > .bp6-navbar-group
+        &.bp6-align-right
           column-gap: 10px
 
-          .bp5-tab-list
+          .bp6-tab-list
             column-gap: 20px
 
-            > .bp5-tab
+            > .bp6-tab
               &[aria-selected="true"]
                 cursor: default
 

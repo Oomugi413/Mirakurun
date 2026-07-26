@@ -1,5 +1,5 @@
 import { Writable } from "stream";
-import EventEmitter = require("eventemitter3");
+import { EventEmitter } from "eventemitter3";
 import { StreamInfo } from "./common";
 interface TSFilterOptions {
     readonly output?: Writable;

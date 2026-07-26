@@ -40,7 +40,7 @@ export function _setTitle(title: string, loading?: boolean): void {
     if (!loading) {
         const elements = document.querySelectorAll(".heading-title");
         elements.forEach(element => {
-            element.classList.remove("bp5-skeleton");
+            element.classList.remove("bp6-skeleton");
             element.textContent = title;
         });
     }

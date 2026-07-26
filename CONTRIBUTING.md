@@ -52,6 +52,11 @@ sudo npm run start
 npm run start.win32
 ```
 
+### Dependencies (依存パッケージ)
+
+依存パッケージを更新する場合は、先に [依存パッケージ / 更新メモ](doc/Dependencies.ja.md) を確認してください。
+`package.json` の `overrides` はいずれも意図があり、特に `express-openapi > glob` の固定を外すと Windows で API ルートが登録されなくなります。
+
 ### Debug
 
 ```sh

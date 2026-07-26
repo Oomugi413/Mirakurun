@@ -15,7 +15,7 @@
 */
 Buffer.poolSize = 0; // disable memory pool
 
-require("dotenv").config();
+require("dotenv").config({ quiet: true });
 const path = require("path");
 import { execSync } from "child_process";
 import { createHash } from "crypto";

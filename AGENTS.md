@@ -11,7 +11,7 @@
 
 ## プロジェクト概要
 
-Mirakurun は、日本のデジタル TV チューナー向け API サーバーです。Node.js / TypeScript で実装され、サーバー側は Express と express-openapi、Web UI は React 18、React Router、Blueprint UI、Sass、webpack を使用します。
+Mirakurun は、日本のデジタル TV チューナー向け API サーバーです。Node.js / TypeScript で実装され、サーバー側は Express 5 と express-openapi、Web UI は React 19、React Router 8、Blueprint UI 6、Sass、webpack を使用します。
 
 ## 主要ディレクトリ
 
@@ -19,7 +19,7 @@ Mirakurun は、日本のデジタル TV チューナー向け API サーバー�
 - `src/Mirakurun/api`: express-openapi の operation 実装。ファイルパスが API パスに対応。
 - `src/ui`: Web UI。React コンポーネント、ルート、Sass、UI 用 TypeScript 設定。
 - `config`: 既定の設定ファイル。実行時に環境変数や Docker 設定とマージされる場合がある。
-- `doc`: セットアップ、設定、プラットフォーム関連のドキュメント。
+- `doc`: セットアップ、設定、プラットフォーム関連のドキュメント。依存パッケージの更新方針と `overrides` の意図は `doc/Dependencies.ja.md` を参照。
 - `test`: Node.js 標準テストランナーのテスト。通常は `lib` のビルド済み JS を読む。
 - `docker`: Dockerfile、Compose 設定、コンテナ初期化スクリプト。
 - `lib`: ビルド出力。必要な場合以外は手編集しない。
