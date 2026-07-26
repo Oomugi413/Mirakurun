@@ -13,7 +13,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-latest, macOS-latest]
-        node-version: [16.x, 18.x, 20.x, 22.x]
+        node-version: [24.x]
 
     steps:
       - name: Checkout
@@ -35,7 +35,7 @@ jobs:
 
       - name: Compress Project
         run: |
-          7z a -m0=LZMA2 -mx=9 -md=128m -mfb=128 -ms=16g -mmt=on -mf=BCJ Mirakurun-${{ matrix.os }}-${{ matrix.node-version }}.7z ./Mirakurun
+          7zz a -t7z -mx=9 -m0=lzma2 -md=256m -mfb=273 -ms=on Mirakurun-${{ matrix.os }}-${{ matrix.node-version }}.7z ./Mirakurun
 
       - name: Upload Project as Artifact
         uses: actions/upload-artifact@v4
