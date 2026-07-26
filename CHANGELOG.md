@@ -29,6 +29,16 @@ see [Commit Logs](https://github.com/Chinachu/Mirakurun/commits/master) to check
   - CSS クラス接頭辞の変更 (`bp5-` → `bp6-`) に追従
 - 🆙 webpack-cli `4` → `7`、css-loader `5` → `7`、style-loader `2` → `4`、sass-loader `16` → `17`
 
+## 4.1.3 (2026-06-28)
+
+### Docker
+
+- 🆙 ベースイメージを `node:24.16.0-bookworm` → `node:24.18.0-bookworm` に更新
+
+### Server
+
+- 🐛 EPG: `extended_event` で同じラベル（例: 番組内容）を重複して受信した場合に文字化けする問題を修正
+
 ## 4.1.2 (2026-06-19)
 
 ### Server
