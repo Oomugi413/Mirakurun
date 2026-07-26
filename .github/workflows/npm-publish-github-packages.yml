@@ -32,7 +32,7 @@ jobs:
         with:
           node-version: 24.x
 
-      - run: npm ci
+      - run: npm install
 
       - run: npm run build
 
@@ -59,7 +59,7 @@ jobs:
           registry-url: https://npm.pkg.github.com/
           scope: "@stuayu"
 
-      - run: npm ci
+      - run: npm install
 
       - run: npm publish --access public
         env:
