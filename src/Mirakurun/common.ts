@@ -23,6 +23,8 @@ export interface User {
     readonly agent?: string;
     readonly url?: string;
     readonly disableDecoder?: boolean;
+    readonly disableMMTSDecoder?: boolean;
+    readonly localTunerOnly?: boolean;
     readonly streamSetting?: StreamSetting;
     readonly streamInfo?: StreamInfo;
 }
@@ -46,7 +48,11 @@ export interface StreamInfo {
     };
 }
 
-export const channelTypes: apid.ChannelType[] = ["GR", "BS", "CS", "SKY"];
+export const channelTypes: apid.ChannelType[] = ["GR", "GR-ALT", "BS", "CS", "SKY", "BS4K"];
+
+export function getTuningChannelType(type: apid.ChannelType): apid.ChannelType {
+    return type === "GR-ALT" ? "GR" : type;
+}
 
 export const deepClone = rfdc();
 

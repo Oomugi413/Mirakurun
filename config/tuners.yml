@@ -3,6 +3,7 @@
     - BS
     - CS
   command: recpt1 --device /dev/pt3video0 --lnb 15 <channel> - -
+  checkDevicePath: /dev/pt3video0
   decoder: arib-b25-stream-test
   isDisabled: true
 
@@ -11,6 +12,7 @@
     - BS
     - CS
   command: recpt1 --device /dev/pt3video1 --lnb 15 <channel> - -
+  checkDevicePath: /dev/pt3video1
   decoder: arib-b25-stream-test
   isDisabled: true
 
@@ -18,6 +20,7 @@
   types:
     - GR
   command: recpt1 --device /dev/pt3video2 <channel> - -
+  checkDevicePath: /dev/pt3video2
   decoder: arib-b25-stream-test
   isDisabled: true
 
@@ -25,6 +28,7 @@
   types:
     - GR
   command: recpt1 --device /dev/pt3video3 <channel> - -
+  checkDevicePath: /dev/pt3video3
   decoder: arib-b25-stream-test
   isDisabled: true
 

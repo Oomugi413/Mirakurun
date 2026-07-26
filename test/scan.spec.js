@@ -15,6 +15,15 @@ describe("[scan.spec] /api/config/channel/scan : generateScanConfig", () => {
         });
     });
 
+    it("GR-ALT: Type only", () => {
+        const config = scan.generateScanConfig({
+            type: "GR-ALT"
+        });
+        assert.deepStrictEqual(config, scan.generateScanConfig({
+            type: "GR"
+        }));
+    });
+
     it("GR: startCh only", () => {
         const config = scan.generateScanConfig({
             type: "GR",
@@ -208,6 +217,35 @@ describe("[scan.spec] /api/config/channel/scan : generateScanConfig", () => {
         });
         assert.deepStrictEqual(config, {
             channels: ["10", "11", "12", "13", "14", "15"],
+            scanMode: "Service",
+            setDisabledOnAdd: true
+        });
+    });
+
+    it("BS4K: startCh and endCh", () => {
+        const config = scan.generateScanConfig({
+            type: "BS4K",
+            startCh: 7,
+            endCh: 9
+        });
+        assert.deepStrictEqual(config, {
+            channels: ["7", "8", "9"],
+            scanMode: "Service",
+            setDisabledOnAdd: true
+        });
+    });
+
+    it("BS4K: useSubCh = true", () => {
+        const config = scan.generateScanConfig({
+            type: "BS4K",
+            startCh: 7,
+            endCh: 7,
+            useSubCh: true,
+            startSubCh: 0,
+            endSubCh: 1
+        });
+        assert.deepStrictEqual(config, {
+            channels: ["BS07_0", "BS07_1"],
             scanMode: "Service",
             setDisabledOnAdd: true
         });

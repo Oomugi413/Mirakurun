@@ -59,6 +59,7 @@
 | `epgGatheringJobSchedule` | `EPG_GATHERING_JOB_SCHEDULE` | String | `20,50 * * * *` | EPG 収集スケジュール (cron 風形式) |
 | `epgRetrievalTime` | `EPG_RETRIEVAL_TIME` | Integer | `600000` | EPG 取得時間 (ミリ秒) |
 | `logoDataInterval` | `LOGO_DATA_INTERVAL` | Integer | `604800000` | ロゴデータ更新間隔 (ミリ秒) |
+| `tunerHandoff` | - | Object | `{ enabled: false, warmupMs: 0, maxBufferMs: 10000, switchMarginMs: 100, syncTimeoutMs: 5000 }` | 使用中チューナーの再配置時に PCR 同期とバッファ付き切り替えを行う実験的な設定 |
 | `disableEITParsing` | `DISABLE_EIT_PARSING` | Boolean | `false` | ⚠️EIT パースの無効化 |
 | `disableWebUI` | `DISABLE_WEB_UI` | Boolean | `false` | ⚠️Web UI の無効化 |
 | `allowIPv4CidrRanges` | `ALLOW_IPV4_CIDR_RANGES` | String[] | `["10.0.0.0/8", "127.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16"]` | ⚠️許可する IPv4 CIDR ブロック |
@@ -82,28 +83,55 @@
 ```yaml
 # 配列
 - name: チューナー識別名 # String
-  types: # (GR|BS|CS|SKY)[]
+  types: # (GR|GR-ALT|BS|CS|SKY|BS4K)[]
     - GR
+    - GR-ALT
     - BS
     - CS
     - SKY
+    - BS4K
   # chardev/dvb用
   # "<template>"は`commandVars[template]`または"(空)"に置き換えられます *@4.0.0~
   command: cmd <channel> --arg1 --arg2 <exampleArg1> <exampleArg2>... # String
+  # BS4K用の任意のコマンド。省略時は`command`が使われます。
+  commandBS4K: cmd-bs4k <channel> --arg1 --arg2 <exampleArg1> <exampleArg2>... # String
   # dvb用
   dvbDevicePath: /dev/dvb/adapter/dvr/path # String
+  # 任意の事前確認パス。未指定時は dvbDevicePath が設定されていればそれを確認します。
+  checkDevicePath: /dev/px4video0 # String
+  # コマンドが失敗終了した後に、このチューナーをスキップする秒数。デフォルトは 2。
+  cooldownSeconds: 2 # Integer
   # リモートMirakurunとの多重化用
   remoteMirakurunHost: 192.168.x.x # String
   remoteMirakurunPort: 40772 # Integer
   remoteMirakurunDecoder: false # Boolean
+  # 接続先 Mirakurun がさらに remote tuner を選択することを許可します。デフォルトは false。
+  remoteMirakurunAllowNested: false # Boolean
   # 以下はオプション
   decoder: cmd # String
+  mmtsDecoder: cmd # String
   isDisabled: false # Boolean
 ```
 
 #### decoder
 
 必要に応じてCAS処理コマンドを指定します。
+
+#### commandBS4K / mmtsDecoder
+
+`BS` / `CS` と `BS4K` を同じチューナーで扱う場合、`commandBS4K` を指定すると `BS4K` チャンネルだけ別コマンドで起動できます。省略時は `command` が使われます。`BS4K` コマンドの出力に MMTS 変換が必要な場合は `mmtsDecoder` を指定します。
+
+#### checkDevicePath
+
+このチューナーを開始する前に存在確認するデバイスパスを指定します。パスが存在しない場合、Mirakurun はこのチューナーをスキップして次の一致するチューナーを試します。`checkDevicePath` が未指定の場合、`dvbDevicePath` が設定されていればそれを事前確認パスとして使用します。
+
+#### cooldownSeconds
+
+チューナーのコマンドが失敗終了した後に、このチューナーをスキップする秒数を指定します。未指定時は `2` です。`0` を指定するとクールダウンを無効にします。
+
+#### remoteMirakurunAllowNested
+
+リモート Mirakurun がさらに別の remote tuner を選択することを許可します。未指定時は `false` で、接続先ではローカル tuner のみが選択されます。多段の remote tuner 構成が必要な場合だけ `true` を指定してください。
 
 ```
 # 参考: MPEG-2 TS の流れ
@@ -133,7 +161,7 @@ sudo npm install arib-b25-stream-test -g --unsafe-perm
 ```yaml
 # 配列
 - name: チャンネル識別名 # String
-  type: GR # 列挙型 [GR|BS|CS|SKY]
+  type: GR # 列挙型 [GR|GR-ALT|BS|CS|SKY|BS4K]
   channel: '0' # String
   # 以下はオプション
   serviceId: 1234 # Integer - 指定しない場合、サービスは自動的にスキャンされます。
@@ -145,5 +173,7 @@ sudo npm install arib-b25-stream-test -g --unsafe-perm
     polarity: H
     exampleArg1: -arg0 -arg1=example
     exampleArg2: -arg2 "引用符を使用して空白を含むことができます"
+  allowedTuners: # オプションのチューナー名リスト。省略時は種別が一致する任意のチューナーを使用します。
+    - Tuner-1
   isDisabled: false # Boolean
 ```

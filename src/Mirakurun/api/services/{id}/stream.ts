@@ -32,6 +32,13 @@ export const parameters = [
         minimum: 0
     },
     {
+        in: "header",
+        name: "X-Mirakurun-Local-Tuner-Only",
+        type: "integer",
+        minimum: 0,
+        maximum: 1
+    },
+    {
         in: "query",
         name: "decode",
         type: "integer",
@@ -69,7 +76,9 @@ export const get: Operation = (req, res) => {
         priority: parseInt(req.get("X-Mirakurun-Priority"), 10) || 0,
         agent: req.get("User-Agent"),
         url: req.url,
-        disableDecoder: (<number> <any> req.query.decode === 0)
+        disableDecoder: (<number> <any> req.query.decode === 0),
+        disableMMTSDecoder: (<number> <any> req.query.decode === 0),
+        localTunerOnly: req.get("X-Mirakurun-Local-Tuner-Only") === "1"
     }, res)
         .then(tsFilter => {
             if (requestAborted === true || req.aborted === true) {

@@ -45,7 +45,7 @@ export interface Channel {
     services?: Service[];
 }
 
-export type ChannelType = "GR" | "BS" | "CS" | "SKY";
+export type ChannelType = "GR" | "GR-ALT" | "BS" | "CS" | "SKY" | "BS4K";
 
 export interface Service {
     id: ServiceItemId;
@@ -73,12 +73,7 @@ export interface Program {
     name?: string;
     description?: string;
     genres?: ProgramGenre[];
-    video?: {
-        type: ProgramVideoType;
-        resolution: ProgramVideoResolution;
-        streamContent: number;
-        componentType: number;
-    }
+    video?: ProgramVideo;
     audios?: ProgramAudio[];
 
     series?: ProgramSeries;
@@ -95,6 +90,13 @@ export interface ProgramGenre {
     lv2: number;
     un1: number;
     un2: number;
+}
+
+export interface ProgramVideo {
+    type: ProgramVideoType;
+    resolution: ProgramVideoResolution;
+    streamContent: number;
+    componentType: number;
 }
 
 export type ProgramVideoType = "mpeg2" | "h.264" | "h.265";
@@ -274,6 +276,13 @@ export interface ConfigServer {
     epgGatheringJobSchedule?: string;
     epgRetrievalTime?: number;
     logoDataInterval?: number;
+    tunerHandoff?: {
+        enabled?: boolean;
+        warmupMs?: number;
+        maxBufferMs?: number;
+        switchMarginMs?: number;
+        syncTimeoutMs?: number;
+    };
     disableEITParsing?: boolean;
     disableWebUI?: boolean;
     allowIPv4CidrRanges?: string[];
@@ -301,16 +310,26 @@ export interface ConfigTunersItem {
     types: ChannelType[];
     /** [chardev][dvb] command to get TS. */
     command?: string;
+    /** [chardev][dvb] command to get BS4K/MMTS. Falls back to `command` when omitted. */
+    commandBS4K?: string;
     /** [dvb] dvr adapter device path */
     dvbDevicePath?: string;
+    /** Optional device path checked before starting this tuner. Falls back to dvbDevicePath when omitted. */
+    checkDevicePath?: string;
+    /** Seconds to skip this tuner after its command exits with failure. */
+    cooldownSeconds?: number;
     /** [remote] specify to use remote Mirakurun host like as `192.168.1.x`. */
     remoteMirakurunHost?: string;
     /** [remote] specify to use remote Mirakurun port number (default: 40772). */
     remoteMirakurunPort?: number;
     /** [remote] `true` to use remote decoder. `false` to use local decoder. (if decoder specified) */
     remoteMirakurunDecoder?: boolean;
+    /** [remote] `true` to allow the upstream Mirakurun to select another remote tuner. Default: `false`. */
+    remoteMirakurunAllowNested?: boolean;
     /** CAS processor command if needed. */
     decoder?: string;
+    /** MMTS processor command for BS4K if needed. */
+    mmtsDecoder?: string;
     /** `true` to **disable** this tuner. */
     isDisabled?: boolean;
 }
@@ -330,6 +349,8 @@ export interface ConfigChannelsItem {
      * @example { "freq": 123456, "polarity": "H", "space": 6, "extra-args": "..." }
      */
     commandVars?: Record<string, string | number>;
+    /** specify tuner names that can be used for this channel. if not specified, any tuner with matching type will be used. */
+    allowedTuners?: string[];
     isDisabled?: boolean;
     /** @deprecated typo of "satellite". */
     readonly satelite?: string;

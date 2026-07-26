@@ -13,12 +13,12 @@
    See the License for the specific language governing permissions and
    limitations under the License.
 */
+import * as path from "path";
 import * as fs from "fs";
 import * as http from "http";
 import { promisify } from "util";
 import express from "express";
 import cors from "cors";
-import mime from "mime";
 import * as openapi from "express-openapi";
 import morgan from "morgan";
 import * as yaml from "js-yaml";
@@ -32,6 +32,7 @@ import _ from "./_";
 import { createRPCServer, initRPCNotifier } from "./rpc";
 
 const pkg = require("../../package.json");
+const NETWORK_INTERFACE_REFRESH_INTERVAL_MS = 5000;
 
 export class Server {
     /** used for test */
@@ -40,6 +41,8 @@ export class Server {
     private _isRunning = false;
     private _servers = new Set<http.Server>();
     private _rpcs = new Set<RPCServer>();
+    private _listeningAddresses = new Set<string>();
+    private _networkInterfaceRefreshTimer: NodeJS.Timeout;
 
     get isRunning() {
         return this._isRunning;
@@ -125,14 +128,21 @@ export class Server {
             }
 
             if (serverConfig.allowPNA && req.get("Access-Control-Request-Method") && req.get("Access-Control-Request-Private-Network") === "true") {
-                res.setHeader("Access-Control-Allow-Private-Network", "true");
-                res.setHeader("Private-Network-Access-Name", `Mirakurun_${serverConfig.hostname}`);
-                res.setHeader("Private-Network-Access-ID", "00:00:00:00:00:00");
+                res.set({
+                    "Access-Control-Allow-Private-Network": "true",
+                    "Private-Network-Access-Name": `Mirakurun_${serverConfig.hostname}`,
+                    "Private-Network-Access-ID": "00:00:00:00:00"
+                });
             }
 
-            res.setHeader("Cross-Origin-Resource-Policy", "cross-origin");
+            res.set({
+                "Cross-Origin-Resource-Policy": "cross-origin",
+                "Cross-Origin-Embedder-Policy": "require-corp",
+                "Server": "Mirakurun/" + pkg.version,
+                "X-Content-Type-Options": "nosniff",
+                "X-Your-IP": req.ip
+            });
 
-            res.setHeader("Server", "Mirakurun/" + pkg.version);
             next();
         });
 
@@ -140,16 +150,15 @@ export class Server {
         app.use(cors());
 
         if (!serverConfig.disableWebUI) {
-            app.use(express.static("lib/ui", {
-                setHeaders: (res, path) => {
-                    if (mime.getType(path) === "image/svg+xml") {
-                        res.setHeader("Cache-Control", "public, max-age=86400");
-                    }
-                }
-            }));
+            app.use(express.static("lib/ui"));
             app.use("/redoc", express.static("node_modules/redoc/bundles"));
             app.use("/redoc-try", express.static("node_modules/redoc-try/dist"));
             app.use("/api/debug", express.static("lib/ui/redoc-ui.html"));
+
+            const indexPath = path.join(__dirname, "..", "ui", "index.html");
+            app.get(/^\/(?!(api|assets|redoc))/, (request, response) => {
+                response.sendFile(indexPath);
+            });
         }
 
         const api = yaml.load(fs.readFileSync("api.yml", "utf8")) as OpenAPIV2.Document;
@@ -225,10 +234,19 @@ export class Server {
                     });
                 });
             }
+
+            this._listeningAddresses.add(address);
         }
 
         // event notifications for RPC
         initRPCNotifier(this._rpcs);
+
+        if (typeof serverConfig.port === "number" && !this.testMode) {
+            this._networkInterfaceRefreshTimer = setInterval(() => {
+                this._refreshNetworkListeners(app, serverConfig.port).catch(log.error);
+            }, NETWORK_INTERFACE_REFRESH_INTERVAL_MS);
+            this._networkInterfaceRefreshTimer.unref();
+        }
 
         log.info("RPC interface is enabled");
     }
@@ -237,6 +255,9 @@ export class Server {
         if (this._isRunning === false) {
             return;
         }
+
+        this._isRunning = false;
+        clearInterval(this._networkInterfaceRefreshTimer);
 
         for (const rpc of this._rpcs) {
             await rpc.close();
@@ -249,8 +270,68 @@ export class Server {
 
         this._rpcs.clear();
         this._servers.clear();
+        this._listeningAddresses.clear();
+    }
 
-        this._isRunning = false;
+    private async _refreshNetworkListeners(app: express.Express, port: number): Promise<void> {
+        if (this._isRunning === false) {
+            return;
+        }
+
+        const addresses = system.getIPv4AddressesForListen();
+        if (_.config.server.disableIPv6 !== true) {
+            addresses.push(...system.getIPv6AddressesForListen());
+        }
+
+        for (const address of addresses) {
+            if (this._listeningAddresses.has(address) === true) {
+                continue;
+            }
+
+            this._listeningAddresses.add(address);
+
+            const server = http.createServer(app);
+            server.timeout = 1000 * 15; // 15 sec.
+
+            try {
+                await new Promise<void>((resolve, reject) => {
+                    const onError = (err: Error) => {
+                        server.removeListener("listening", onListening);
+                        reject(err);
+                    };
+                    const onListening = () => {
+                        server.removeListener("error", onError);
+                        resolve();
+                    };
+
+                    server.once("error", onError);
+                    server.once("listening", onListening);
+                    server.listen(port, address);
+                });
+            } catch (err) {
+                this._listeningAddresses.delete(address);
+                log.warn("failed to listen on `%s`: %s", address, err.message);
+                continue;
+            }
+
+            if (this.isRunning === false) {
+                this._listeningAddresses.delete(address);
+                await new Promise<void>(resolve => server.close(() => resolve()));
+                return;
+            }
+
+            this._servers.add(server);
+            this._rpcs.add(createRPCServer(server));
+
+            const serverAddr = server.address();
+            const listeningPort = typeof serverAddr === "string" ? port : serverAddr.port;
+            if (address.includes(":")) {
+                const [addr, iface] = address.split("%");
+                log.info("listening on http://[%s]:%d (%s)", addr, listeningPort, iface);
+            } else {
+                log.info("listening on http://%s:%d", address, listeningPort);
+            }
+        }
     }
 }
 

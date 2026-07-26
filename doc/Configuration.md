@@ -59,6 +59,7 @@
 | `epgGatheringJobSchedule` | `EPG_GATHERING_JOB_SCHEDULE` | String | `20,50 * * * *` | EPG gathering schedule (cron-like format) |
 | `epgRetrievalTime` | `EPG_RETRIEVAL_TIME` | Integer | `600000` | EPG retrieval time (milliseconds) |
 | `logoDataInterval` | `LOGO_DATA_INTERVAL` | Integer | `604800000` | Logo data update interval (milliseconds) |
+| `tunerHandoff` | - | Object | `{ enabled: false, warmupMs: 0, maxBufferMs: 10000, switchMarginMs: 100, syncTimeoutMs: 5000 }` | Experimental tuner handoff settings for rebalancing occupied tuners with PCR-synchronized buffered switching |
 | `disableEITParsing` | `DISABLE_EIT_PARSING` | Boolean | `false` | ⚠️Disable EIT parsing |
 | `disableWebUI` | `DISABLE_WEB_UI` | Boolean | `false` | ⚠️Disable Web UI |
 | `allowIPv4CidrRanges` | `ALLOW_IPV4_CIDR_RANGES` | String[] | `["10.0.0.0/8", "127.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16"]` | ⚠️Allowed IPv4 CIDR blocks |
@@ -82,28 +83,55 @@
 ```yaml
 # Array
 - name: TunerIdentificationName # String
-  types: # (GR|BS|CS|SKY)[]
+  types: # (GR|GR-ALT|BS|CS|SKY|BS4K)[]
     - GR
+    - GR-ALT
     - BS
     - CS
     - SKY
+    - BS4K
   # For chardev/dvb
   # "<template>" will be replaced with `commandVars[template]` or "(empty)" *@4.0.0~
   command: cmd <channel> --arg1 --arg2 <exampleArg1> <exampleArg2>... # String
+  # Optional command used only for BS4K. Falls back to `command` when omitted.
+  commandBS4K: cmd-bs4k <channel> --arg1 --arg2 <exampleArg1> <exampleArg2>... # String
   # For dvb
   dvbDevicePath: /dev/dvb/adapter/dvr/path # String
+  # Optional preflight path. If omitted, dvbDevicePath is checked when set.
+  checkDevicePath: /dev/px4video0 # String
+  # Seconds to skip this tuner after its command exits with failure. Defaults to 2.
+  cooldownSeconds: 2 # Integer
   # For multiplexing with remote Mirakurun
   remoteMirakurunHost: 192.168.x.x # String
   remoteMirakurunPort: 40772 # Integer
   remoteMirakurunDecoder: false # Boolean
+  # Allow the upstream Mirakurun to select another remote tuner. Default: false.
+  remoteMirakurunAllowNested: false # Boolean
   # Optional parameters below
   decoder: cmd # String
+  mmtsDecoder: cmd # String
   isDisabled: false # Boolean
 ```
 
 #### decoder
 
 Specify the CAS processing command as needed.
+
+#### commandBS4K / mmtsDecoder
+
+When a tuner supports `BS4K` together with `BS` / `CS`, specify `commandBS4K` to use a dedicated command for `BS4K` channels. If `commandBS4K` is omitted, `command` is used. Specify `mmtsDecoder` when the `BS4K` command output needs MMTS conversion.
+
+#### checkDevicePath
+
+Specify a device path that must exist before this tuner can be started. If the path is missing, Mirakurun skips this tuner and tries the next matching tuner. When `checkDevicePath` is omitted, `dvbDevicePath` is used as the preflight path if it is set.
+
+#### cooldownSeconds
+
+Specify seconds to skip this tuner after its command exits with failure. When omitted, it defaults to `2`. Set `0` to disable cooldown.
+
+#### remoteMirakurunAllowNested
+
+Allows the upstream Mirakurun to select another remote tuner. The default is `false`, so only local tuners on the upstream Mirakurun are eligible. Set this to `true` only when a multi-hop remote tuner topology is intentional.
 
 ```
 # Reference: MPEG-2 TS flow
@@ -133,7 +161,7 @@ sudo npm install arib-b25-stream-test -g --unsafe-perm
 ```yaml
 # Array
 - name: ChannelIdentificationName # String
-  type: GR # Enum [GR|BS|CS|SKY]
+  type: GR # Enum [GR|GR-ALT|BS|CS|SKY|BS4K]
   channel: '0' # String
   # Optional parameters below
   serviceId: 1234 # Integer - Services will be automatically scanned if not specified.
@@ -145,5 +173,7 @@ sudo npm install arib-b25-stream-test -g --unsafe-perm
     polarity: H
     exampleArg1: -arg0 -arg1=example
     exampleArg2: -arg2 "Can include spaces using quotes"
+  allowedTuners: # Optional tuner name list. If omitted, any matching tuner can be used.
+    - Tuner-1
   isDisabled: false # Boolean
 ```

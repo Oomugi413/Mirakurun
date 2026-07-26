@@ -16,9 +16,9 @@
 import { join, dirname } from "path";
 import { existsSync } from "fs";
 import { stat, mkdir, readFile, writeFile } from "fs/promises";
-import { sleep } from "./common";
 import * as log from "./log";
 import * as db from "./db";
+import * as apid from "../../api";
 import _ from "./_";
 import Event from "./Event";
 import ChannelItem from "./ChannelItem";
@@ -248,6 +248,11 @@ export class Service {
     private async _initJobs(): Promise<void> {
         log.debug("init service jobs...");
 
+        const remoteOnlyTypes = _.tuner.getRemoteOnlyTypes();
+        for (const type of remoteOnlyTypes) {
+            this._queueRemoteSync(type);
+        }
+
         // add services from channel config
         for (const channelConfig of _.config.channels) {
             if (channelConfig.isDisabled || !channelConfig.serviceId) {
@@ -271,21 +276,14 @@ export class Service {
             name: "Service Add Scan [Find Targets]",
             fn: async () => {
                 for (const channel of _.channel.items) {
+                    if (remoteOnlyTypes.includes(channel.type)) {
+                        continue;
+                    }
                     if (this.findByChannel(channel).length > 0) {
                         continue;
                     }
 
                     this._queueScanToAdd(channel);
-                }
-            },
-            readyFn: async () => {
-                // wait for all Service.Check-Add.* jobs to finish
-                while (true) {
-                    if (_.job.jobs.some(job => job.status !== "finished" && job.key.includes("Service.Add.Check."))) {
-                        await sleep(1000);
-                        continue;
-                    }
-                    return true;
                 }
             }
         });
@@ -302,7 +300,13 @@ export class Service {
                         key: "Service.Updater",
                         name: "Service Updater",
                         fn: async () => {
+                            for (const type of remoteOnlyTypes) {
+                                this._queueRemoteSync(type);
+                            }
                             for (const channel of _.channel.items) {
+                                if (remoteOnlyTypes.includes(channel.type)) {
+                                    continue;
+                                }
                                 if (this.findByChannel(channel).length === 0) {
                                     continue;
                                 }
@@ -323,6 +327,114 @@ export class Service {
             this._items.map(service => service.export()),
             _.configIntegrity.channels
         );
+    }
+
+    private _queueRemoteSync(type: apid.ChannelType): void {
+        _.job.add({
+            key: `Service.Remote.Sync.${type}`,
+            name: `Service Remote Sync ${type}`,
+            fn: () => this._syncRemoteType(type),
+            retryOnFail: true,
+            retryMax: (1000 * 60 * 60 * 12) / (1000 * 60 * 3), // (12時間 / retryDelay) = 12時間～
+            retryDelay: 1000 * 60 * 3
+        });
+    }
+
+    private async _syncRemoteType(type: apid.ChannelType): Promise<void> {
+        log.info("ChannelType#'%s' remote service sync has started", type);
+
+        let remoteServices: Awaited<ReturnType<typeof _.tuner.getRemoteServicesByType>>;
+        try {
+            remoteServices = await _.tuner.getRemoteServicesByType(type);
+        } catch (e) {
+            log.warn("ChannelType#'%s' remote service sync has failed [%s]", type, e);
+            throw new Error("Remote service sync failed");
+        }
+
+        if (remoteServices.sources.length === 0) {
+            log.warn("ChannelType#'%s' remote service sync has failed [no reachable remote sources]", type);
+            throw new Error("Remote service sync failed");
+        }
+
+        const allowedTunersByChannel = new Map<string, Set<string>>();
+        const servicesById = new Map<string, apid.Service>();
+
+        for (const source of remoteServices.sources) {
+            for (const service of source.services) {
+                if (!service.channel || !service.channel.channel) {
+                    continue;
+                }
+
+                let allowedTuners = allowedTunersByChannel.get(service.channel.channel);
+                if (!allowedTuners) {
+                    allowedTuners = new Set<string>();
+                    allowedTunersByChannel.set(service.channel.channel, allowedTuners);
+                }
+                source.tunerNames.forEach(name => allowedTuners.add(name));
+                servicesById.set(`${service.networkId}:${service.serviceId}`, service);
+            }
+        }
+
+        for (const channel of _.channel.findByType(type)) {
+            channel.setRemoteAllowedTuners([...(allowedTunersByChannel.get(channel.channel) || [])]);
+        }
+
+        let channelCount = 0;
+        let serviceCount = 0;
+
+        for (const service of servicesById.values()) {
+            if (!service.channel || !service.channel.channel) {
+                continue;
+            }
+
+            let channel = _.channel.get(type, service.channel.channel);
+            if (channel === null) {
+                channel = new ChannelItem({
+                    name: service.channel.name || service.name || `${type}:${service.channel.channel}`,
+                    type,
+                    channel: service.channel.channel
+                });
+                _.channel.add(channel);
+                channelCount++;
+            }
+            channel.setRemoteAllowedTuners([...(allowedTunersByChannel.get(channel.channel) || [])]);
+
+            const item = this.get(service.networkId, service.serviceId);
+            if (item !== null) {
+                item.name = service.name;
+                item.type = service.type;
+                if (service.logoId > -1) {
+                    item.logoId = service.logoId;
+                }
+                item.remoteControlKeyId = service.remoteControlKeyId;
+                continue;
+            }
+
+            this.add(
+                new ServiceItem(
+                    channel,
+                    service.networkId,
+                    service.serviceId,
+                    service.name,
+                    service.type,
+                    service.logoId,
+                    service.remoteControlKeyId
+                )
+            );
+            serviceCount++;
+        }
+
+        log.info(
+            "ChannelType#'%s' remote service sync has finished (%d sources, %d channels, %d services added)",
+            type,
+            remoteServices.sources.length,
+            channelCount,
+            serviceCount
+        );
+
+        if (remoteServices.failedSourceCount > 0) {
+            throw new Error(`Remote service sync incomplete (${remoteServices.failedSourceCount} sources failed)`);
+        }
     }
 
     private _queueCheckToAdd(channel: ChannelItem, serviceId: number): void {
@@ -403,6 +515,10 @@ export class Service {
         services.forEach(service => {
             const item = this.get(service.networkId, service.serviceId);
             if (item !== null) {
+                // A remote service sync may have registered the same service under
+                // GR-ALT before the local channel scan finishes. Prefer the channel
+                // that actually produced the service during a direct scan.
+                item.channel = channel;
                 item.name = service.name;
                 item.type = service.type;
                 if (service.logoId > -1) {

@@ -150,6 +150,18 @@ export class Program {
         return items;
     }
 
+    findByNetworkIdServiceId(networkId: number, serviceId: number): db.Program[] {
+        const items = [];
+
+        for (const item of this._itemMap.values()) {
+            if (item.networkId === networkId && item.serviceId === serviceId) {
+                items.push(item);
+            }
+        }
+
+        return items;
+    }
+
     findByNetworkIdAndTime(networkId: number, time: number): db.Program[] {
         const items = [];
 
@@ -162,21 +174,42 @@ export class Program {
         return items;
     }
 
+    findByNetworkIdAndServiceIdAndTime(networkId: number, serviceId: number, time: number): db.Program[] {
+        const items = [];
+
+        for (const item of this._itemMap.values()) {
+            if (item.networkId === networkId && item.serviceId === serviceId && item.startAt <= time && item.startAt + item.duration > time) {
+                items.push(item);
+            }
+        }
+
+        return items;
+    }
+
     findByNetworkIdAndReplace(networkId: number, programs: db.Program[]): void {
         let count = 0;
+        const programIds = new Set(programs.map(program => program.id));
 
         for (const item of [...this._itemMap.values()].reverse()) {
-            if (item.networkId === networkId) {
+            if (item.networkId === networkId && programIds.has(item.id) === false) {
                 // Calling `this.remove(item)` here is safe.  Because that never
                 // changes the Array object we're iterating here.
                 this.remove(item.id);
+                Event.emit("program", "remove", { id: item.id });
                 --count;
             }
         }
 
         for (const program of programs) {
-            this.add(program, true);
-            ++count;
+            const item = this.get(program.id);
+            if (item === null) {
+                this.add(program);
+                ++count;
+            } else if (JSON.stringify(item) !== JSON.stringify(program)) {
+                this._itemMap.set(program.id, program);
+                this._emitPrograms.set(program, "update");
+                ++count;
+            }
         }
 
         log.debug("programs replaced (networkId=%d, count=%d)", networkId, count);

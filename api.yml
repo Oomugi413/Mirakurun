@@ -87,9 +87,11 @@ definitions:
     type: string
     enum:
       - GR
+      - GR-ALT
       - BS
       - CS
       - SKY
+      - BS4K
 
   # service -------------------------------------------------------------------
 
@@ -564,6 +566,19 @@ definitions:
         type: integer
       logoDataInterval:
         type: integer
+      tunerHandoff:
+        type: object
+        properties:
+          enabled:
+            type: boolean
+          warmupMs:
+            type: integer
+          maxBufferMs:
+            type: integer
+          switchMarginMs:
+            type: integer
+          syncTimeoutMs:
+            type: integer
       disableEITParsing:
         type: boolean
       disableWebUI:
@@ -596,15 +611,25 @@ definitions:
           $ref: '#/definitions/ChannelType'
       command:
         type: string
+      commandBS4K:
+        type: string
       dvbDevicePath:
         type: string
+      checkDevicePath:
+        type: string
+      cooldownSeconds:
+        type: integer
       remoteMirakurunHost:
         type: string
       remoteMirakurunPort:
         type: integer
       remoteMirakurunDecoder:
         type: boolean
+      remoteMirakurunAllowNested:
+        type: boolean
       decoder:
+        type: string
+      mmtsDecoder:
         type: string
       isDisabled:
         type: boolean
@@ -633,6 +658,11 @@ definitions:
         type: integer
       commandVars:
         type: object
+      allowedTuners:
+        type: array
+        description: "Tuner names that can be used for this channel. If omitted, any tuner with a matching type can be used."
+        items:
+          type: string
       isDisabled:
         type: boolean
 
