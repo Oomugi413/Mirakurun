@@ -53,12 +53,31 @@ A Japanese digital TV tuner API server specifically designed for "Air" (code nam
     http://127.0.0.1:40772
 
   4. Windowsのサービス化<br>
-      GUIからの再起動コマンドは現在動作しません。
+      GUIからの再起動コマンドは現在動作しません。<br>
+      管理者権限のターミナルで実行してください。
       ```powershell
-      npm install -g node-windows
-      npm link node-windows
-      npm run install-win-service # インストール実行
+      npm run install-win-service   # インストール実行
       npm run uninstall-win-service # アンインストール実行
+      npm run status-win-service    # 登録状況と実行環境の確認 (管理者権限不要)
+      ```
+
+      インストール時に**サービスを動かすユーザー名とパスワード**を聞かれます。
+      既定はログオン中のユーザーで、そのまま Enter を押して構いません
+      (パスワードの入力は伏せ字になり、Windows のサービス設定へ渡す以外の用途には使いません)。
+
+      * **ログオン中のユーザーの権限でサービスを動かします。**
+        LocalSystem はセッション 0 で動くため、ユーザー環境に置いた BonDriver・録画コマンド・設定へ手が届きません
+      * Microsoft アカウントでサインインしていてパスワードを持たない場合は、
+        ローカルアカウントに切り替えてパスワードを設定してから実行してください。
+        どうしても LocalSystem で動かす場合は `--system` を付けます
+      * 指定したアカウントには**録画データ・ログ出力先への書き込み権限**が必要です
+        (「サービスとしてログオン」権限は登録時に自動で付与されます)
+      * `tuners.yml` に絶対パスで書かれた BonDriver・デコーダのディレクトリと node のディレクトリは、
+        サービス専用の `Path` へ自動で追加されます (サービスはユーザースコープの PATH を参照できないため)
+
+      ```powershell
+      node bin/install-win-service.js --user=".\<ユーザー名>" # 別のアカウントで動かす
+      node bin/install-win-service.js --system                # LocalSystem で動かす
       ```
 
 ### 利用方法の例

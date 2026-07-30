@@ -45,6 +45,7 @@
     "build:webpack": "webpack",
     "install-win-service": "node bin/install-win-service.js",
     "uninstall-win-service": "node bin/uninstall-win-service.js",
+    "status-win-service": "node bin/status-win-service.js",
     "watch": "concurrently -n w: npm:watch:*",
     "watch:server": "tsc -w --declaration",
     "watch:webpack": "webpack -w",
