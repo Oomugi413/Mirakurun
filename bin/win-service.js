@@ -21,6 +21,14 @@
  * サービスは既定で LocalSystem・セッション 0 で動くため、ログオン中のユーザーの
  * PATH や環境を参照できない。BonDriver や録画コマンドをユーザー環境に置いている
  * 構成では動かないため、既定ではログオン中のユーザーとしてサービスを登録する。
+ *
+ * node-windows は「グローバルインストール + npm link」で使う。
+ *   > npm install -g node-windows
+ *   > npm link node-windows
+ * link していない場合はグローバルの node_modules から読み込む。
+ *
+ * --name で表示名を変えられる (1 台で複数の Mirakurun を動かす場合に使う)。
+ * uninstall / status でも同じ --name を渡すこと。
  */
 
 const fs = require("fs");
@@ -39,7 +47,53 @@ const {
 
 const root = path.resolve(__dirname, "..");
 const scriptPath = path.join(root, "bin", "init.win32.js");
-const serviceName = toServiceId(SERVICE_DISPLAY_NAME);
+
+// --name で上書きできるようにするため、実行時に決める (既定は Mirakurun)
+let displayName = SERVICE_DISPLAY_NAME;
+let serviceName = toServiceId(displayName);
+
+/**
+ * --name の指定を反映する。
+ */
+function applyServiceName(options) {
+    if (typeof options.name !== "string" || options.name.trim() === "") {
+        return;
+    }
+
+    displayName = options.name.trim();
+    serviceName = toServiceId(displayName);
+    if (serviceName === "") {
+        throw new Error("--name には英数字を含む名前を指定してください。");
+    }
+}
+
+/**
+ * node-windows を読み込む。
+ * ローカルに無い場合はグローバルインストール (npm install -g node-windows) を探す。
+ * node-windows は winsw の実行ファイルを同梱するため、環境によっては
+ * グローバルへ入れて npm link したものでないと動かない。
+ */
+function requireNodeWindows() {
+    try {
+        return require("node-windows");
+    } catch (e) {
+        const result = spawnSync("npm", ["root", "-g"], { encoding: "utf8", windowsHide: true, shell: true });
+        const globalRoot = typeof result.stdout === "string" ? result.stdout.trim() : "";
+        if (globalRoot !== "") {
+            try {
+                return require(path.join(globalRoot, "node-windows"));
+            } catch (globalError) {
+                // 見つからなかった場合は下の案内へ
+            }
+        }
+
+        throw new Error(
+            "node-windows を読み込めませんでした。次のコマンドを実行してから再度お試しください:\n" +
+            "  npm install -g node-windows\n" +
+            "  npm link node-windows"
+        );
+    }
+}
 
 /**
  * 引数を { command, options } に分解する。
@@ -203,10 +257,10 @@ async function resolveLogOnAccount(options) {
  * @param logOnAccount 実行アカウント (null なら LocalSystem)
  */
 function createService(logOnAccount) {
-    const { Service } = require("node-windows");
+    const { Service } = requireNodeWindows();
 
     const svc = new Service({
-        name: SERVICE_DISPLAY_NAME,
+        name: displayName,
         description: "Mirakurun EPG and Stream Server",
         script: scriptPath,
         startType: "auto",
@@ -230,7 +284,14 @@ function createService(logOnAccount) {
 
 module.exports = {
     root: root,
-    serviceName: serviceName,
+    // --name で変わるため getter で公開する
+    get displayName() {
+        return displayName;
+    },
+    get serviceName() {
+        return serviceName;
+    },
+    applyServiceName: applyServiceName,
     parseArgs: parseArgs,
     isAdministrator: isAdministrator,
     findCommandDirectory: findCommandDirectory,

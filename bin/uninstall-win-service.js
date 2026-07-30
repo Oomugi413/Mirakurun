@@ -19,11 +19,14 @@
  * Mirakurun の Windows サービス登録を解除する。
  *
  *   npm run uninstall-win-service
+ *   node bin/uninstall-win-service.js --name="Mirakurun Sub"
  *
  * node-windows の uninstall() は内部でサービスを停止してから削除する。
  */
 
-const { createService, isAdministrator, serviceName } = require("./win-service");
+// serviceName は --name で変わるため、モジュールオブジェクト経由で参照する
+const winService = require("./win-service");
+const { createService, isAdministrator, parseArgs } = winService;
 
 if (process.platform !== "win32") {
     console.error("このスクリプトは Windows でのみ使用できます。");
@@ -34,14 +37,17 @@ if (isAdministrator() === false) {
     process.exit(1);
 }
 
+const { options } = parseArgs(process.argv.slice(2));
+winService.applyServiceName(options);
+
 const svc = createService(null);
 
 svc.on("uninstall", () => {
-    console.log(`サービスをアンインストールしました: ${serviceName}`);
+    console.log(`サービスをアンインストールしました: ${winService.serviceName}`);
 });
 
 svc.on("alreadyuninstalled", () => {
-    console.log(`サービス ${serviceName} は登録されていません。`);
+    console.log(`サービス ${winService.serviceName} は登録されていません。`);
 });
 
 svc.on("error", err => {

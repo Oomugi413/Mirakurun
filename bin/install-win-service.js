@@ -26,19 +26,21 @@
  *   --user=<アカウント>      サービスの実行アカウント (既定はログオン中のユーザー)
  *   --password=<パスワード>  省略時は対話で入力を求める (入力は伏せ字になる)
  *   --system                 LocalSystem として動かす (パスワードを持たないアカウント向け)
+ *   --name=<表示名>          サービスの表示名 (既定は Mirakurun)。1 台で複数の
+ *                            Mirakurun を動かす場合に使う。uninstall / status でも
+ *                            同じ --name を渡すこと
+ *
+ * node-windows はグローバルインストールしたものを使う。
+ *   > npm install -g node-windows
+ *   > npm link node-windows
  *
  * 既定でログオン中のユーザーとして登録するのは、LocalSystem だとユーザー環境に置いた
  * BonDriver・録画コマンド・設定へ手が届かないため。
  */
 
-const {
-    createService,
-    isAdministrator,
-    parseArgs,
-    queryService,
-    resolveLogOnAccount,
-    serviceName
-} = require("./win-service");
+// serviceName は --name で変わるため、モジュールオブジェクト経由で参照する
+const winService = require("./win-service");
+const { createService, isAdministrator, parseArgs, queryService, resolveLogOnAccount } = winService;
 
 async function main() {
     if (process.platform !== "win32") {
@@ -47,21 +49,26 @@ async function main() {
     if (isAdministrator() === false) {
         throw new Error("管理者権限で実行してください (コマンドプロンプトを「管理者として実行」)。");
     }
+
+    const { options } = parseArgs(process.argv.slice(2));
+    // --name は全スクリプト共通 (別名で登録できるようにする)
+    winService.applyServiceName(options);
+
     if (queryService() !== null) {
         throw new Error(
-            `サービス ${serviceName} は既に登録されています。先に "npm run uninstall-win-service" を実行してください。`
+            `サービス ${winService.serviceName} は既に登録されています。` +
+            "先に \"npm run uninstall-win-service\" を実行してください。"
         );
     }
 
-    const { options } = parseArgs(process.argv.slice(2));
     const logOnAccount = await resolveLogOnAccount(options);
     const svc = createService(logOnAccount);
 
     svc.on("install", () => {
         console.log(
             logOnAccount === null
-                ? `サービスをインストールしました: ${serviceName} (LocalSystem)`
-                : `サービスをインストールしました: ${serviceName} (${logOnAccount.domain}\\${logOnAccount.account})`
+                ? `サービスをインストールしました: ${winService.serviceName} (LocalSystem)`
+                : `サービスをインストールしました: ${winService.serviceName} (${logOnAccount.domain}\\${logOnAccount.account})`
         );
         if (logOnAccount !== null) {
             console.log("録画データ・ログの出力先に、このアカウントの書き込み権限があることを確認してください。");

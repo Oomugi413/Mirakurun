@@ -54,7 +54,13 @@ A Japanese digital TV tuner API server specifically designed for "Air" (code nam
 
   4. Windowsのサービス化<br>
       GUIからの再起動コマンドは現在動作しません。<br>
-      管理者権限のターミナルで実行してください。
+      **node-windows はグローバルインストールしたものを link して使います。**
+      ```powershell
+      npm install -g node-windows
+      npm link node-windows
+      ```
+
+      その上で、管理者権限のターミナルから実行してください。
       ```powershell
       npm run install-win-service   # インストール実行
       npm run uninstall-win-service # アンインストール実行
@@ -78,6 +84,14 @@ A Japanese digital TV tuner API server specifically designed for "Air" (code nam
       ```powershell
       node bin/install-win-service.js --user=".\<ユーザー名>" # 別のアカウントで動かす
       node bin/install-win-service.js --system                # LocalSystem で動かす
+      ```
+
+      1 台で複数の Mirakurun を動かす場合は `--name` でサービスの表示名を変えられます。
+      アンインストール・状況確認でも同じ `--name` を渡してください。
+      ```powershell
+      node bin/install-win-service.js --name="Mirakurun Sub"
+      node bin/uninstall-win-service.js --name="Mirakurun Sub"
+      node bin/status-win-service.js --name="Mirakurun Sub"
       ```
 
 ### 利用方法の例

@@ -20,20 +20,27 @@
  * 管理者権限は不要。
  *
  *   npm run status-win-service
+ *   node bin/status-win-service.js --name="Mirakurun Sub"
  */
 
 const path = require("path");
-const { createEnvironment, findCommandDirectory, queryService, root, serviceName } = require("./win-service");
+// serviceName は --name で変わるため、モジュールオブジェクト経由で参照する
+const winService = require("./win-service");
+const { createEnvironment, findCommandDirectory, parseArgs, queryService, root } = winService;
 
 if (process.platform !== "win32") {
     console.error("このスクリプトは Windows でのみ使用できます。");
     process.exit(1);
 }
 
+const { options } = parseArgs(process.argv.slice(2));
+winService.applyServiceName(options);
+
 const existing = queryService();
 
 console.log(`Mirakurun のディレクトリ: ${root}`);
-console.log(`サービス名: ${serviceName}`);
+console.log(`表示名: ${winService.displayName}`);
+console.log(`サービス名: ${winService.serviceName}`);
 
 if (existing === null) {
     console.log("登録状況: 未登録");
