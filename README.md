@@ -53,7 +53,6 @@ A Japanese digital TV tuner API server specifically designed for "Air" (code nam
     http://127.0.0.1:40772
 
   4. Windowsのサービス化<br>
-      GUIからの再起動コマンドは現在動作しません。<br>
       **node-windows はグローバルインストールしたものを link して使います。**
       ```powershell
       npm install -g node-windows
@@ -85,6 +84,9 @@ A Japanese digital TV tuner API server specifically designed for "Air" (code nam
       node bin/install-win-service.js --user=".\<ユーザー名>" # 別のアカウントで動かす
       node bin/install-win-service.js --system                # LocalSystem で動かす
       ```
+
+      管理画面からの再起動 (`PUT /api/restart`) はサービスとして動かしている場合も使えます。
+      サービスラッパがプロセスの終了を検知して起動し直します。
 
       1 台で複数の Mirakurun を動かす場合は `--name` でサービスの表示名を変えられます。
       アンインストール・状況確認でも同じ `--name` を渡してください。

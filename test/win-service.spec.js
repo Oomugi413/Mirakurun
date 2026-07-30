@@ -156,6 +156,7 @@ describe("[win-service.spec] winService.ts: buildServiceEnvironment()", () => {
     const entries = winService.buildServiceEnvironment({
       machinePath: "C:\\Windows",
       extraDirectories: ["C:/DTV/BonDriver"],
+      serviceName: "mirakurun",
       userProfile: "C:\\Users\\mirakurun",
       localAppData: "C:\\Users\\mirakurun\\AppData\\Local"
     });
@@ -164,16 +165,40 @@ describe("[win-service.spec] winService.ts: buildServiceEnvironment()", () => {
       { name: "Path", value: "C:\\Windows;C:/DTV/BonDriver" },
       { name: "USERPROFILE", value: "C:\\Users\\mirakurun" },
       { name: "LOCALAPPDATA", value: "C:\\Users\\mirakurun\\AppData\\Local" },
+      { name: "MIRAKURUN_WIN_SERVICE_NAME", value: "mirakurun" },
       { name: "USING_WINSER", value: "1" }
     ]);
   });
 
   it("Omits user variables that are not available", () => {
-    const entries = winService.buildServiceEnvironment({ machinePath: "C:\\Windows", extraDirectories: [] });
+    const entries = winService.buildServiceEnvironment({
+      machinePath: "C:\\Windows",
+      extraDirectories: [],
+      serviceName: "mirakurunsub"
+    });
 
     assert.deepStrictEqual(entries, [
       { name: "Path", value: "C:\\Windows" },
+      { name: "MIRAKURUN_WIN_SERVICE_NAME", value: "mirakurunsub" },
       { name: "USING_WINSER", value: "1" }
     ]);
+  });
+});
+
+describe("[win-service.spec] winService.ts: getWindowsServiceName()", () => {
+  it("Falls back to the default service name", () => {
+    assert.strictEqual(winService.getWindowsServiceName({}), "mirakurun");
+  });
+
+  it("Uses the name given at install time", () => {
+    assert.strictEqual(
+      winService.getWindowsServiceName({ MIRAKURUN_WIN_SERVICE_NAME: "mirakurunsub" }),
+      "mirakurunsub"
+    );
+  });
+
+  it("Rejects a name that would affect the shell (it is passed to sc start)", () => {
+    assert.strictEqual(winService.getWindowsServiceName({ MIRAKURUN_WIN_SERVICE_NAME: "a & calc" }), "mirakurun");
+    assert.strictEqual(winService.getWindowsServiceName({ MIRAKURUN_WIN_SERVICE_NAME: "" }), "mirakurun");
   });
 });

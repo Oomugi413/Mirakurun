@@ -16,6 +16,12 @@
 import { Operation } from "express-openapi";
 import { spawn } from "child_process";
 import * as api from "../api";
+import { getWindowsServiceName } from "../winService";
+
+/** 停止処理が終わるのを待ってから sc start を投げるまでの秒数 (ping の回数) */
+const SERVICE_START_WAIT_SEC = 8;
+/** レスポンスを返しきってから終了するまでの待ち時間 */
+const EXIT_DELAY_MS = 1000;
 
 export const put: Operation = (req, res) => {
     if (process.env.pm_uptime) {
@@ -29,15 +35,29 @@ export const put: Operation = (req, res) => {
         res.status(202);
         res.end(JSON.stringify({ _cmd_pid: cmd.pid }));
     } else if (process.env.USING_WINSER) {
-        const cmd = spawn("cmd", ["/c", "net stop mirakurun & timeout 2 & sc start mirakurun.exe"], {
+        // node-windows の wrapper は子プロセスが終了すると自動で起動し直すため、
+        // 自分で終了するだけで新しいプロセスへ入れ替わる。
+        // 従来は `net stop` でサービスごと止めていたが、その子プロセスとして起動した
+        // cmd.exe も一緒に終了させられるうえ、`sc start mirakurun.exe` はサービス名が
+        // 誤っていた (正しくは `mirakurun`) ため、停止したまま起き上がらなかった。
+        //
+        // sc.exe から直接登録された環境など wrapper が居ない場合に備えて、
+        // プロセスツリーから切り離した cmd.exe に遅延させた `sc start` も投げておく
+        // (既に起動していればエラー 1056 になるだけで害はない)。
+        // サービス環境では `timeout` コマンドが使えないため ping で待ち合わせる。
+        const serviceName = getWindowsServiceName(process.env);
+        const cmd = spawn("cmd", ["/c", `ping -n ${SERVICE_START_WAIT_SEC} 127.0.0.1 > nul & sc start "${serviceName}"`], {
             detached: true,
-            stdio: "ignore"
+            stdio: "ignore",
+            windowsHide: true
         });
         cmd.unref();
 
         res.setHeader("Content-Type", "application/json; charset=utf-8");
         res.status(202);
         res.end(JSON.stringify({ _cmd_pid: cmd.pid }));
+
+        setTimeout(() => process.exit(0), EXIT_DELAY_MS).unref();
     } else if (process.env.DOCKER === "YES") {
         res.status(202);
         res.end(JSON.stringify({ _exit: 0 }));

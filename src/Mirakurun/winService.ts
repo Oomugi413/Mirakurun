@@ -44,6 +44,8 @@ export interface ServiceEnvironmentInput {
     machinePath: string;
     /** node やチューナーコマンドなど PATH へ足したいディレクトリ */
     extraDirectories: string[];
+    /** 登録するサービス名 (再起動 API がサービスを起こし直すために使う) */
+    serviceName: string;
     /** サービスから参照させたいユーザー環境変数 */
     userProfile?: string;
     localAppData?: string;
@@ -201,8 +203,22 @@ export function buildServiceEnvironment(input: ServiceEnvironmentInput): Service
     if (typeof input.localAppData === "string" && input.localAppData !== "") {
         entries.push({ name: "LOCALAPPDATA", value: input.localAppData });
     }
-    // 既存のサービス定義から引き継いでいる目印 (init.win32.js が参照する)
+    // 再起動 API (PUT /api/restart) がサービスを起こし直すために使う
+    entries.push({ name: "MIRAKURUN_WIN_SERVICE_NAME", value: input.serviceName });
+    // 既存のサービス定義から引き継いでいる目印 (Windows サービスとして動いていることを示す)
     entries.push({ name: "USING_WINSER", value: "1" });
 
     return entries;
+}
+
+/**
+ * Windows サービスとして登録されている名前を返す。
+ * `sc start` へ渡すため、シェルに影響しない書式だけを受け付ける。
+ */
+export function getWindowsServiceName(env: NodeJS.ProcessEnv): string {
+    const value = env.MIRAKURUN_WIN_SERVICE_NAME;
+
+    return typeof value === "string" && /^[A-Za-z0-9._-]{1,64}$/.test(value)
+        ? value
+        : toServiceId(SERVICE_DISPLAY_NAME);
 }

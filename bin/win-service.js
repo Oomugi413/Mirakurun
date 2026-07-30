@@ -161,6 +161,7 @@ function createEnvironment() {
     return buildServiceEnvironment({
         machinePath: process.env.Path || process.env.PATH || "",
         extraDirectories: extraDirectories,
+        serviceName: serviceName,
         userProfile: process.env.USERPROFILE,
         localAppData: process.env.LOCALAPPDATA
     });
