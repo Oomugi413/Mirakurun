@@ -99,58 +99,19 @@ this._mmtsDecoderProcess = null;
 - CS/BS/地デジ用チューナーは `mmtsDecoder` 分岐を通らないため、この例外は
   CS 録画開始失敗の直接原因ではない。
 
-### 推奨修正
+### 実施した修正
 
-イベントハンドラーでは、後から変化するフィールドではなく、生成時のローカル変数
-を捕捉する。`error` と `close` の `.pid` 参照も同じ問題を持つため、`exit` の1行
-だけを optional chaining にするのは不十分である。
+この問題は、次のコミットで修正済みである。
 
-修正方針は次のとおり。
+- コミット: `a721e39` (`fix: guard mmtsDecoder process cleanup`)
+- 変更ファイル: `src/Mirakurun/TunerDevice.ts`
+- 変更関数: `private _spawn()`
+- 回帰テスト追加: `test/tuner-device.spec.js` の `TunerDevice mmtsDecoder cleanup`
 
-```ts
-const mmtsDecoderProcess = child_process.spawn(parsed.command, parsed.args);
-this._mmtsDecoderProcess = mmtsDecoderProcess;
-
-mmtsDecoderProcess.once("error", (err) => {
-    log.error(
-        "TunerDevice#%d mmtsDecoder process error `%s` (pid=%d)",
-        this._index,
-        err.name,
-        mmtsDecoderProcess.pid
-    );
-    this._kill(false);
-});
-
-mmtsDecoderProcess.once("close", (code, signal) => {
-    log.debug(
-        "TunerDevice#%d mmtsDecoder process has closed with code=%d by signal `%s` (pid=%d)",
-        this._index,
-        code,
-        signal,
-        mmtsDecoderProcess.pid
-    );
-    if (this._exited === false) {
-        this._kill(false);
-    }
-});
-```
-
-終了済みの子プロセスへ入力を閉じる `exit` ハンドラーは実質不要なので削除を
-第一候補とする。残す場合も `mmtsDecoderProcess.stdin` のように生成時の参照を
-使い、`destroyed` / `writableEnded` を確認して冪等にする。
-
-さらに `_kill()` と `_release()` に重複しているデコーダー終了処理を1つの
-private helper にまとめ、次を一度だけ行うのが安全である。
-
-1. 現在のプロセスをローカル変数へ退避する。
-2. フィールドが同じプロセスを指す場合だけ `null` にする。
-3. tuner stdout をそのプロセスから `unpipe()` する。
-4. stdin が開いていれば `end()` し、プロセスが終了していなければ
-   `SIGTERM` を送る。
-
-修正後は、BS4K ストリームの開始・正常終了、クライアント切断、デコーダーの
-自発終了、チューナー側の先行終了をテストし、`uncaughtException` が増えないことを
-確認する。
+`_spawn()` の BS4K 用 `mmtsDecoder` 終了処理について、生成時の子プロセスを
+イベントハンドラーが参照し、古いプロセスのイベントが現在の状態へ作用しないよう
+修正した。問題のある `exit` ハンドラーを削除し、非同期の終了処理で発生した
+エラーもログへ渡すようにしている。
 
 ## 2. `TSDecoder` の無応答処理の二重実行
 
