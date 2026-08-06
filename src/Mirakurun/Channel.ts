@@ -271,6 +271,8 @@ export class Channel {
                         }
                         return _.tuner.readyForJob(service.channel);
                     }
+
+                    return _.tuner.readyForJob(service.channel);
                 }
             });
         };
