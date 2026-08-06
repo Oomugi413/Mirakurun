@@ -1,6 +1,7 @@
 # Mirakurun 例外・再起動カウンター調査
 
 調査日: 2026-07-18
+Codex Session ID: 019f72fc-60ef-7721-bb23-f2228dc4daae
 
 ## 結論
 
@@ -193,6 +194,30 @@ APIの `decoderRespawn=2`、ログの再生成2回、強制終了3回、フォ�
 このときの入力は `BS/18130`、チューナーは `TunerDevice#5` であり、
 BS4K用 `mmtsDecoder` の例外とは別の経路である。
 
+### 導入コミットと Oomugi413 の考察
+
+無応答タイマーと `ChildProcess` の `close` イベントからそれぞれ `_dead()` を
+呼び出す処理は、次のコミットで `TSDecoder` の初期実装として同時に追加された。
+
+- コミット: `350e4b5c7c558ff46354e5e7509dbbab484a2d5b`
+- 日付: 2021-01-07
+- Author / Committer: `kanreisa <re@pixely.jp>`
+- 件名: `Add TSDecoder - command auto heal, path-through fallback implemented`
+- URL: https://github.com/Chinachu/Mirakurun/commit/350e4b5c7c558ff46354e5e7509dbbab484a2d5b
+
+このコミットはマージコミットではなく、`TSDecoder.ts` を新規追加した通常の
+コミットである。無応答タイマーからの `_dead()`、`close` イベントからの
+`_dead()`、`_deadCount` の加算、再生成、pass-through へのフォールバックは、
+いずれも `kanreisa` によって同じ初期実装へ含められている。後続履歴にも、
+`nekohkr` または `Oomugi413` がこの二重呼び出しを追加した形跡や、マージ競合の
+解消時に混入した形跡は確認されなかった。
+
+Oomugi413 は、二つの `_dead()` 呼び出しがどちらも同じ設計者によって同時に
+実装されていることから、1回の無応答に対して `_dead()` が2回実行される挙動も、
+設計者が意図した実装である可能性が高いと考察している。したがって、二重実行を
+直ちに不具合と断定せず、`_deadCount`、再生成回数およびフォールバック条件を
+設計者がどの単位で数える意図だったかを確認する必要がある。
+
 ### 推奨修正
 
 - `_dead(proc)` のように障害元のプロセスを渡し、現在の
@@ -290,5 +315,3 @@ TunerDevice#9 will force killed because SIGTERM timed out
 
 いずれの修正でも `npm run build` 後に `npm test` を実行し、実機依存部分は
 子プロセスを模したテストと、BS4K EPG取得・ストリーム終了の実機確認で補う。
-
-codex resume 019f72fc-60ef-7721-bb23-f2228dc4daae
