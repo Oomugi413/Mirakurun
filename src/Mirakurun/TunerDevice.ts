@@ -16,7 +16,7 @@
 import * as child_process from "child_process";
 import * as stream from "stream";
 import * as util from "util";
-import EventEmitter = require("eventemitter3");
+import { EventEmitter } from "eventemitter3";
 import * as common from "./common";
 import * as log from "./log";
 import * as config from "./config";
@@ -380,7 +380,12 @@ export default class TunerDevice extends EventEmitter {
         await new Promise<void>(resolve => {
             this.once("release", resolve);
 
-            if (/^dvbv5-zap /.test(this._command) === true) {
+            if (process.platform === "win32") {
+                const timer = setTimeout(() => this._process.kill(), 3000);
+                this._process.once("exit", () => clearTimeout(timer));
+
+                this._process.stdin.write("\n");
+            } else if (/^dvbv5-zap /.test(this._command) === true) {
                 this._process.kill("SIGKILL");
             } else {
                 const timer = setTimeout(() => {

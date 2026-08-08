@@ -102,6 +102,21 @@ export class Server {
         app.use(express.urlencoded({ extended: false }));
         app.use(express.json());
 
+        // Express 5 re-parses `req.query` on every access, so mutations made by
+        // express-openapi's request coercer are discarded before the request
+        // validator runs (typed query parameters would always fail validation).
+        // Freeze the parsed query into an own property to keep it stable.
+        app.use((req: express.Request, res: express.Response, next) => {
+            const query = req.query;
+            Object.defineProperty(req, "query", {
+                value: query,
+                writable: true,
+                enumerable: true,
+                configurable: true
+            });
+            next();
+        });
+
         app.use((req: express.Request, res: express.Response, next) => {
             if (req.ip && system.isPermittedIPAddress(req.ip) === false) {
                 req.socket.end();
@@ -165,7 +180,7 @@ export class Server {
             app: app,
             apiDoc: api,
             docsPath: "/docs",
-            paths: "./lib/Mirakurun/api"
+            paths: path.resolve(__dirname, "api")
         });
 
         app.use((err, req, res: express.Response, next) => {
@@ -203,8 +218,8 @@ export class Server {
             this._servers.add(server);
             this._rpcs.add(createRPCServer(server));
 
-            if (regexp.unixDomainSocket.test(address)) {
-                if (fs.existsSync(address)) {
+            if (regexp.unixDomainSocket.test(address) || regexp.windowsNamedPipe.test(address)) {
+                if (process.platform !== "win32" && fs.existsSync(address) === true) {
                     fs.unlinkSync(address);
                 }
 
@@ -215,7 +230,9 @@ export class Server {
                     });
                 });
 
-                fs.chmodSync(address, "777");
+                if (process.platform !== "win32") {
+                    fs.chmodSync(address, "777");
+                }
             } else {
                 await new Promise<void>(resolve => {
                     server.listen(serverConfig.port, address, () => {

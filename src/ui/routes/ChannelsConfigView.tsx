@@ -41,7 +41,10 @@ import { ConfigChannels, ConfigChannelsItem, ChannelType, ChannelScanStatus } fr
 import "./ChannelsConfigView.sass";
 
 const configAPI = "/api/config/channels";
-const typesIndex = ["GR", "BS", "CS", "SKY"];
+const typesIndex = ["GR", "BS", "CS", "SKY", "NW1", "NW2", "NW3", "NW4", "NW5", "NW6", "NW7", "NW8", "NW9", "NW10",
+    "NW11", "NW12", "NW13", "NW14", "NW15", "NW16", "NW17", "NW18", "NW19", "NW20",
+    "NW21", "NW22", "NW23", "NW24", "NW25", "NW26", "NW27", "NW28", "NW29", "NW30",
+    "NW31", "NW32", "NW33", "NW34", "NW35", "NW36", "NW37", "NW38", "NW39", "NW40"];
 
 function sortTypes(types: ChannelType[]): ChannelType[] {
     return types.sort((a, b) => typesIndex.indexOf(a) - typesIndex.indexOf(b));
@@ -564,7 +567,8 @@ export const ChannelsConfigView: React.FC = () => {
                                             { value: "GR", label: "GR" },
                                             { value: "BS", label: "BS" },
                                             { value: "CS", label: "CS" },
-                                            { value: "SKY", label: "SKY" }
+                                            { value: "SKY", label: "SKY" },
+                                            ...[...Array(40)].map((_, i) => ({ value: `NW${i + 1}`, label: `NW${i + 1}` }))
                                         ]}
                                     />
                                 </td>
@@ -692,7 +696,7 @@ export const ChannelsConfigView: React.FC = () => {
             >
                 <DialogBody>
                     <p>設定を保存しますか？</p>
-                    <p className="bp5-text-muted">適用するには再起動が必要です。</p>
+                    <p className="bp6-text-muted">適用するには再起動が必要です。</p>
                 </DialogBody>
                 <DialogFooter
                     actions={
@@ -743,7 +747,8 @@ export const ChannelsConfigView: React.FC = () => {
                                 options={[
                                     { value: "GR", label: "GR" },
                                     { value: "BS", label: "BS" },
-                                    { value: "CS", label: "CS" }
+                                    { value: "CS", label: "CS" },
+                                    ...[...Array(40)].map((_, i) => ({ value: `NW${i + 1}`, label: `NW${i + 1}` }))
                                 ]}
                             />
                         </FormGroup>

@@ -61,6 +61,7 @@ export function getStatus(): apid.Status {
                 DOCKER: process.env.DOCKER,
                 DOCKER_NETWORK: process.env.DOCKER_NETWORK,
                 pm_uptime: process.env.pm_uptime,
+                USING_WINSER: process.env.USING_WINSER,
                 NODE_ENV: process.env.NODE_ENV,
                 SERVER_CONFIG_PATH: process.env.SERVER_CONFIG_PATH,
                 TUNERS_CONFIG_PATH: process.env.TUNERS_CONFIG_PATH,

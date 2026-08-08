@@ -17,28 +17,68 @@
       padding: 12px 8px !important
 
     td
-      .bp5-form-group
+      .bp6-form-group
         margin-bottom: 8px
         &:last-child
           margin-bottom: 0
 
-      .bp5-label
+      .bp6-label
         margin-bottom: 3px
         font-weight: 600
         font-size: 11px
         color: colors.$gray1
 
-        .bp5-dark &
+        .bp6-dark &
           color: colors.$gray4
 
-  .types-checkboxes
+  .types-section
     display: flex
     flex-direction: column
     gap: 4px
-    margin-top: 6px
 
-    .bp5-control
+  .types-base
+    display: flex
+    flex-wrap: wrap
+    gap: 2px 8px
+
+    .bp6-control
       margin-bottom: 0
+
+  .types-nw-header
+    display: flex
+    align-items: center
+    gap: 4px
+    margin-top: 4px
+    font-size: 11px
+    font-weight: 600
+    color: colors.$gray1
+
+    .bp6-dark &
+      color: colors.$gray4
+
+    .bp6-button
+      min-height: 16px
+      font-size: 10px
+      padding: 0 4px
+
+  .types-nw-grid
+    display: flex
+    flex-wrap: wrap
+    gap: 0
+
+    .bp6-control.bp6-checkbox
+      flex: 0 0 36px
+      width: 36px
+      margin-bottom: 2px
+      font-size: 11px
+      padding-left: 20px
+      white-space: nowrap
+
+      .bp6-control-indicator
+        width: 14px
+        height: 14px
+        min-width: 14px
+        font-size: 12px
 
   .remote-mirakurun-group
     display: flex
@@ -46,7 +86,7 @@
     align-items: flex-end
     margin-bottom: 8px
 
-    .bp5-form-group
+    .bp6-form-group
       margin-bottom: 0 !important
 
   .tuner-options-grid

@@ -58,7 +58,7 @@ export const Nav: React.FC<NavProps> = ({ pathLv1 }) => {
 
     const [dark, setDark] = useLocalStorageState<boolean>("dark", true);
     useEffect(() => {
-        document.body.classList.toggle("bp5-dark", dark);
+        document.body.classList.toggle("bp6-dark", dark);
     }, [dark]);
 
     const getNavbarButtonProps = useCallback((name: string, className = "") => {
@@ -101,11 +101,11 @@ export const Nav: React.FC<NavProps> = ({ pathLv1 }) => {
                     Mirakurun
                     <sup className="version">{version}</sup>
                 </Navbar.Heading>
-                <div className="bp5-input-group">
-                    <span className="bp5-icon bp5-icon-search"></span>
+                <div className="bp6-input-group">
+                    <span className="bp6-icon bp6-icon-search"></span>
                     <input
                         type="text"
-                        className="bp5-input"
+                        className="bp6-input"
                         placeholder="番組検索..."
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
@@ -117,7 +117,7 @@ export const Nav: React.FC<NavProps> = ({ pathLv1 }) => {
                     />
                     <Button
                         variant="minimal"
-                        className="bp5-intent-primary"
+                        className="bp6-intent-primary"
                         icon="arrow-right"
                         title="検索"
                         onClick={executeSearch}

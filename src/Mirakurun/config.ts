@@ -18,6 +18,7 @@ import { dirname } from "path";
 import { hostname } from "os";
 import { existsSync, readdirSync } from "fs";
 import { mkdir, copyFile, readFile, writeFile } from "fs/promises";
+import * as fs from "fs";
 import * as yaml from "js-yaml";
 import * as ipnum from "ip-num";
 import Queue from "promise-queue";
@@ -82,7 +83,11 @@ export async function loadServer(): Promise<Server> {
         // copy if not exists
         try {
             log.info("copying default server config to `%s`", path);
-            await copyFile("config/server.yml", path);
+            if (process.platform === "win32") {
+                fs.copyFileSync("config/server.win32.yml", path);
+            } else {
+                fs.copyFileSync("config/server.yml", path);
+            }
         } catch (e) {
             log.fatal("failed to copy server config to `%s`", path);
             console.error(e);
@@ -93,7 +98,7 @@ export async function loadServer(): Promise<Server> {
 
     // set default
     if (!config.allowIPv4CidrRanges) {
-        config.allowIPv4CidrRanges = ["10.0.0.0/8", "127.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16"];
+        config.allowIPv4CidrRanges = ["10.0.0.0/8", "127.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16", "100.0.0.0/8"];
     }
     if (!config.allowIPv6CidrRanges) {
         config.allowIPv6CidrRanges = ["fc00::/7"];
@@ -108,6 +113,11 @@ export async function loadServer(): Promise<Server> {
     }
     if (!config.tsplayEndpoint) {
         config.tsplayEndpoint = "https://mirakurun-secure-contexts-api.pages.dev/tsplay/";
+    }
+    if (!config.allowOrigins) {
+        config.allowOrigins = [
+            "https://mirakurun-secure-contexts-api.pages.dev"
+        ];
     }
 
     // Docker
@@ -260,7 +270,7 @@ export async function loadTuners(): Promise<Tuner[]> {
     }
 
     // auto
-    if (existsSync(path) === false) {
+    if (process.platform === "linux" && fs.existsSync(path) === false) {
         log.info("missing tuners config `%s`", path);
         log.info("trying to detect tuners...");
         const tuners: Tuner[] = [];
@@ -327,7 +337,11 @@ export async function loadTuners(): Promise<Tuner[]> {
         log.info("missing tuners config `%s`", path);
         try {
             log.info("copying default tuners config to `%s`", path);
-            await copyFile("config/tuners.yml", path);
+            if (process.platform === "win32") {
+                fs.copyFileSync("config/tuners.win32.yml", path);
+            } else {
+                fs.copyFileSync("config/tuners.yml", path);
+            }
         } catch (e) {
             log.fatal("failed to copy tuners config to `%s`", path);
             console.error(e);
@@ -364,7 +378,11 @@ export async function loadChannels(): Promise<Channel[]> {
         log.info("missing channels config `%s`", path);
         try {
             log.info("copying default channels config to `%s`", path);
-            await copyFile("config/channels.yml", path);
+            if (process.platform === "win32") {
+                fs.copyFileSync("config/channels.win32.yml", path);
+            } else {
+                fs.copyFileSync("config/channels.yml", path);
+            }
         } catch (e) {
             log.fatal("failed to copy channels config to `%s`", path);
             console.error(e);

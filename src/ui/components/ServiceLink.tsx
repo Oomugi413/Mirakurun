@@ -15,7 +15,7 @@
 */
 import * as React from "react";
 import { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { Link } from "react-router";
 import { channelTypeMap } from "../modules/constants";
 import { Service } from "../../../api.d";
 import { state } from "../modules/state";
@@ -65,8 +65,8 @@ export const ServiceLink: React.FC<ServiceLinkProps> = ({ globalId, date, time, 
         <div className={className} {...props}>
             {service && service.hasLogoData && <img src={`/api/services/${service.id}/logo`} />}
 
-            <Link className={service ? null : "bp5-skeleton"} title="EPG 番組表 (週間)" to={to}>
-                {service ? `${service.name.normalize("NFKC")} (${channelTypeMap[service.channel.type]})` : "サービス名..."}
+            <Link className={service ? null : "bp6-skeleton"} title="EPG 番組表 (週間)" to={to}>
+                {service ? `${service.name.normalize("NFKC")} (${channelTypeMap[service.channel?.[0]?.type]})` : "サービス名..."}
             </Link>
         </div>
     );

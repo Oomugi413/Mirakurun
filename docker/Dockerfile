@@ -26,7 +26,11 @@ RUN apt-get update && \
         libdvbv5-dev \
         pcsc-tools \
         dvb-tools \
-        && \
+        wget
+
+RUN wget https://github.com/tsukumijima/libaribb25/releases/download/v0.2.9/libaribb25_0.2.9_amd64.deb && \
+    apt-get install -y ./libaribb25_0.2.9_amd64.deb && \
+    rm libaribb25_0.2.9_amd64.deb && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 COPY --from=build /app /app

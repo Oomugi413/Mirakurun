@@ -2,8 +2,12 @@
   "$schema": "https://json.schemastore.org/tsconfig",
   "compilerOptions": {
     "alwaysStrict": true,
+    "strict": false,
     "lib": [
       "es2022"
+    ],
+    "types": [
+      "node"
     ],
     "module": "node16",
     "target": "es2022",
@@ -11,6 +15,7 @@
     "removeComments": true,
     "sourceMap": true,
     "incremental": true,
+    "rootDir": "src",
     "outDir": "lib"
   },
   "exclude": [

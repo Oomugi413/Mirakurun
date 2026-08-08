@@ -31,11 +31,14 @@ if (semver.satisfies(process.version, pkg.engines.node) === true) {
 }
 
 // init
-if (process.getuid() !== 0) {
-    process.exit(0);
-}
 
-if (process.env.DOCKER === "YES") {
-    console.log("Note: running in Docker.");
-    process.exit(0);
+if (process.platform === "linux" || process.platform === "darwin") {
+    if (process.getuid() !== 0) {
+        process.exit(0);
+    }
+
+    if (process.env.DOCKER === "YES") {
+        console.log("Note: running in Docker.");
+        process.exit(0);
+    }
 }

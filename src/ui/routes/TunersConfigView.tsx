@@ -39,7 +39,10 @@ import { ConfigTuners, ConfigTunersItem, ChannelType } from "../../../api.d";
 import "./TunersConfigView.sass";
 
 const configAPI = "/api/config/tuners";
-const typesIndex = ["GR", "BS", "CS", "SKY"];
+const typesIndex = ["GR", "BS", "CS", "SKY", "NW1", "NW2", "NW3", "NW4", "NW5", "NW6", "NW7", "NW8", "NW9", "NW10",
+    "NW11", "NW12", "NW13", "NW14", "NW15", "NW16", "NW17", "NW18", "NW19", "NW20",
+    "NW21", "NW22", "NW23", "NW24", "NW25", "NW26", "NW27", "NW28", "NW29", "NW30",
+    "NW31", "NW32", "NW33", "NW34", "NW35", "NW36", "NW37", "NW38", "NW39", "NW40"];
 
 function sortTypes(types: ChannelType[]): ChannelType[] {
     return types.sort((a, b) => typesIndex.indexOf(a) - typesIndex.indexOf(b));
@@ -226,7 +229,7 @@ export const TunersConfigView: React.FC = () => {
                         <tr>
                             <th style={{ width: "80px" }}>Enable</th>
                             <th style={{ width: "180px" }}>Name</th>
-                            <th style={{ width: "120px" }}>Types</th>
+                            <th style={{ width: "280px" }}>Types</th>
                             <th>Options</th>
                             <th style={{ width: "140px", textAlign: "right" }}></th>
                         </tr>
@@ -251,14 +254,13 @@ export const TunersConfigView: React.FC = () => {
                                     />
                                 </td>
                                 <td>
-                                    <div className="types-checkboxes">
-                                        {(["GR", "BS", "CS", "SKY"] as ChannelType[]).map((type) => {
-                                            const checked = tuner.types?.includes(type) ?? false;
-                                            return (
+                                    <div className="types-section">
+                                        <div className="types-base">
+                                            {(["GR", "BS", "CS", "SKY"] as ChannelType[]).map((type) => (
                                                 <Checkbox
                                                     key={type}
                                                     label={type}
-                                                    checked={checked}
+                                                    checked={tuner.types?.includes(type) ?? false}
                                                     inline
                                                     onChange={(e) => {
                                                         let newTypes = [...(tuner.types || [])];
@@ -271,8 +273,50 @@ export const TunersConfigView: React.FC = () => {
                                                         updateTuner(i, { types: newTypes });
                                                     }}
                                                 />
-                                            );
-                                        })}
+                                            ))}
+                                        </div>
+                                        <div className="types-nw-header">
+                                            <span>NW</span>
+                                            <Button
+                                                minimal small
+                                                text="全選択"
+                                                onClick={() => {
+                                                    const nwTypes = [...Array(40)].map((_, n) => `NW${n + 1}` as ChannelType);
+                                                    const base = (tuner.types || []).filter(t => !t.startsWith("NW"));
+                                                    updateTuner(i, { types: sortTypes([...base, ...nwTypes]) });
+                                                }}
+                                            />
+                                            <Button
+                                                minimal small
+                                                text="全解除"
+                                                onClick={() => {
+                                                    updateTuner(i, { types: (tuner.types || []).filter(t => !t.startsWith("NW")) });
+                                                }}
+                                            />
+                                        </div>
+                                        <div className="types-nw-grid">
+                                            {[...Array(40)].map((_, n) => {
+                                                const type = `NW${n + 1}` as ChannelType;
+                                                return (
+                                                    <Checkbox
+                                                        key={type}
+                                                        label={`${n + 1}`}
+                                                        title={type}
+                                                        checked={tuner.types?.includes(type) ?? false}
+                                                        onChange={(e) => {
+                                                            let newTypes = [...(tuner.types || [])];
+                                                            if (e.currentTarget.checked) {
+                                                                newTypes.push(type);
+                                                                newTypes = sortTypes(newTypes);
+                                                            } else {
+                                                                newTypes = newTypes.filter(t => t !== type);
+                                                            }
+                                                            updateTuner(i, { types: newTypes });
+                                                        }}
+                                                    />
+                                                );
+                                            })}
+                                        </div>
                                     </div>
                                 </td>
                                 <td>
@@ -409,7 +453,7 @@ export const TunersConfigView: React.FC = () => {
             >
                 <DialogBody>
                     <p>設定を保存しますか？</p>
-                    <p className="bp5-text-muted">適用するには再起動が必要です。</p>
+                    <p className="bp6-text-muted">適用するには再起動が必要です。</p>
                 </DialogBody>
                 <DialogFooter
                     actions={

@@ -15,6 +15,97 @@ A Japanese digital TV tuner API server specifically designed for "Air" (code nam
 
 [**English**](README.md) | [**日本語**](README.ja.md)
 
+[**CHANGELOG**](CHANGELOG.md) | [**Setup Guide**](doc/Platforms.md) | [**Configuration**](doc/Configuration.md)
+
+[**English**](README.md) | [**日本語**](README.ja.md)
+
+---
+## フォークにあたっての変更点など
+> [!NOTE]
+> こちらは開発ブランチです。正常な動作は保証しておりません。<br>
+> 機能追加するときのテストをしています。<br>
+> BonDriverごとに物理チャンネル番号等がずれてしまっている場合でも、<br>
+> 効率よく選局ができるようになりました。(サービスストリームのみ)<br>
+> [EPGStation devブランチ](https://github.com/stuayu/EPGStation/tree/dev)と[BonDriver_mirakc](https://github.com/stuayu/BonDriver_mirakc)のService_Split=1で動作することを確認済みです。<br>
+> ※APIに変更が加わっているため、各種本家版のツールでは動作しません。<br>
+> KonomiTVは本家版で動作することを確認済みです。<br>
+> NodeJS v18/v20 LTS版でビルド、実行を確認しています。<br>
+
+### インストール方法
+  1. ダウンロード<br>
+    Githubからクローンする
+      ```powershell
+      git clone https://github.com/stuayu/Mirakurun.git -b feature/4.0.0-windows # devブランチをチェックアウトする
+      cd Mirakurun
+      ```
+  1. ビルド
+      ```powershell
+      npm install
+      npm run build
+      ```
+  2. 起動
+    管理者権限でターミナルを起動して以下のコマンドを実行
+      ```powershell
+      npm run start.win32
+      ```
+
+  3. 管理画面の確認<br>
+    http://127.0.0.1:40772
+
+  4. Windowsのサービス化<br>
+      **node-windows はグローバルインストールしたものを link して使います。**
+      ```powershell
+      npm install -g node-windows
+      npm link node-windows
+      ```
+
+      その上で、管理者権限のターミナルから実行してください。
+      ```powershell
+      npm run install-win-service   # インストール実行
+      npm run uninstall-win-service # アンインストール実行
+      npm run status-win-service    # 登録状況と実行環境の確認 (管理者権限不要)
+      ```
+
+      インストール時に**サービスを動かすユーザー名とパスワード**を聞かれます。
+      既定はログオン中のユーザーで、そのまま Enter を押して構いません
+      (パスワードの入力は伏せ字になり、Windows のサービス設定へ渡す以外の用途には使いません)。
+
+      * **ログオン中のユーザーの権限でサービスを動かします。**
+        LocalSystem はセッション 0 で動くため、ユーザー環境に置いた BonDriver・録画コマンド・設定へ手が届きません
+      * Microsoft アカウントでサインインしていてパスワードを持たない場合は、
+        ローカルアカウントに切り替えてパスワードを設定してから実行してください。
+        どうしても LocalSystem で動かす場合は `--system` を付けます
+      * 指定したアカウントには**録画データ・ログ出力先への書き込み権限**が必要です
+        (「サービスとしてログオン」権限は登録時に自動で付与されます)
+      * `tuners.yml` に絶対パスで書かれた BonDriver・デコーダのディレクトリと node のディレクトリは、
+        サービス専用の `Path` へ自動で追加されます (サービスはユーザースコープの PATH を参照できないため)
+
+      ```powershell
+      node bin/install-win-service.js --user=".\<ユーザー名>" # 別のアカウントで動かす
+      node bin/install-win-service.js --system                # LocalSystem で動かす
+      ```
+
+      管理画面からの再起動 (`PUT /api/restart`) はサービスとして動かしている場合も使えます。
+      サービスラッパがプロセスの終了を検知して起動し直します。
+
+      1 台で複数の Mirakurun を動かす場合は `--name` でサービスの表示名を変えられます。
+      アンインストール・状況確認でも同じ `--name` を渡してください。
+      ```powershell
+      node bin/install-win-service.js --name="Mirakurun Sub"
+      node bin/uninstall-win-service.js --name="Mirakurun Sub"
+      node bin/status-win-service.js --name="Mirakurun Sub"
+      ```
+
+### 利用方法の例
+  * 各種チューナー -> (BonDriverProxyEx) -> Mirakurun -> EPGStation -> BonDriver_EPGStation -> TVTest<br>
+  * 各種チューナー -> (BonDriverProxyEx) -> Mirakurun -> EPGStation -> [EPGStationの録画を見る](https://github.com/daig0rian/epcltvapp) -> 家庭のテレビ<br>
+  * 各種チューナー -> (BonDriverProxyEx) -> Mirakurun -> [Kodi](https://kodi.tv/) -> 家庭のテレビ<br>
+  * 各種チューナー -> (BonDriverProxyEx) -> Mirakurun -> BonDriver_mirakc(チャンネルストリーム) -> EDCB<br>
+  * 各種チューナー -> (BonDriverProxyEx) -> Mirakurun -> BonDriver_mirakc(サービスストリーム) -> TVTest<br>
+  * 各種チューナー -> (BonDriverProxyEx) -> Mirakurun -> KonomiTV<br>
+
+---
+以下本家版のドキュメントです。
 ## Docker
 
 [![dockeri.co](https://dockeri.co/image/chinachu/mirakurun)][docker-url]

@@ -63,14 +63,14 @@ export const EPGTable: React.FC<EPGTableProps> = ({ date, channelType, globalSer
 
     const startTime = date.toMillis();
 
-    const headerRef = useRef<HTMLDivElement>();
-    const timescaleRef = useRef<HTMLDivElement>();
-    const timelineRef = useRef<HTMLDivElement>();
-    const clockRef = useRef<HTMLDivElement>();
-    const timetableRef = useRef<HTMLDivElement>();
-    const headerItemRef = useRef<HTMLDivElement>();
-    const timescaleItemRef = useRef<HTMLDivElement>();
-    const jumpToTimelineRef = useRef<HTMLButtonElement>();
+    const headerRef = useRef<HTMLDivElement>(null);
+    const timescaleRef = useRef<HTMLDivElement>(null);
+    const timelineRef = useRef<HTMLDivElement>(null);
+    const clockRef = useRef<HTMLDivElement>(null);
+    const timetableRef = useRef<HTMLDivElement>(null);
+    const headerItemRef = useRef<HTMLDivElement>(null);
+    const timescaleItemRef = useRef<HTMLDivElement>(null);
+    const jumpToTimelineRef = useRef<HTMLButtonElement>(null);
 
     const [reload, setReload] = useState(0); // リロード用
     const [dimensions, setDimensions] = useState<Dimensions>(null);
@@ -80,8 +80,8 @@ export const EPGTable: React.FC<EPGTableProps> = ({ date, channelType, globalSer
     const [programId, setProgramId] = useState<number>(defaultProgramId || null);
     const [time, setTime] = useState<number>(defaultTime || null);
     const [services, setServices] = useState<Service[]>(null);
-    const [serviceItems, setServiceItems] = useState<JSX.Element[]>(null);
-    const [timetableCols, setTimetableCols] = useState<JSX.Element[]>(null);
+    const [serviceItems, setServiceItems] = useState<React.JSX.Element[]>(null);
+    const [timetableCols, setTimetableCols] = useState<React.JSX.Element[]>(null);
 
     if (globalServiceId) {
         // 週間番組表
@@ -262,7 +262,7 @@ export const EPGTable: React.FC<EPGTableProps> = ({ date, channelType, globalSer
         // 全体番組表
         const _services = state.services
             .filter(s => s.type === 1)
-            .filter(s => channelType ? s.channel.type === channelType : true);
+            .filter(s => channelType ? s.channel?.[0]?.type === channelType : true);
 
         // ソート
         _services.sort((a, b) => {
@@ -306,8 +306,8 @@ export const EPGTable: React.FC<EPGTableProps> = ({ date, channelType, globalSer
         console.debug("EPGTable", "filteredPrograms", filteredPrograms);
 
         const programMap = new Map<string, Program>(); // イベントグループ検索用
-        const _serviceItems: JSX.Element[] = [];
-        const cols: JSX.Element[] = [];
+        const _serviceItems: React.JSX.Element[] = [];
+        const cols: React.JSX.Element[] = [];
 
         // サービスごとにループ
         for (let i = 0; i < services.length; i++) {
@@ -360,7 +360,7 @@ export const EPGTable: React.FC<EPGTableProps> = ({ date, channelType, globalSer
                     _serviceItems.push(
                         <button className="epg-table-header-item date" key={`${service.id}-${i}`}
                             onClick={() => {
-                                state.navigate(`/epg?type=${service.channel.type}&date=${cur.toISODate()}`);
+                                state.navigate(`/epg?type=${service.channel?.[0]?.type}&date=${cur.toISODate()}`);
                             }}
                         >
                             <span>{cur.toFormat("M月d日（ccc）")}</span>
@@ -384,7 +384,7 @@ export const EPGTable: React.FC<EPGTableProps> = ({ date, channelType, globalSer
                 genres: [],
             });
 
-            const cells: JSX.Element[] = [];
+            const cells: React.JSX.Element[] = [];
             // 週間番組表用
             const splitIndexes: number[] = [];
             const maxHeight = 60 * 24 * dimensions.scaleFactor;
@@ -548,18 +548,18 @@ export const EPGTable: React.FC<EPGTableProps> = ({ date, channelType, globalSer
         <div className="component-epg-table">
             <div className="header" ref={headerRef}>
                 {!serviceItems && !error && <>
-                    <div className="epg-table-header-item loading" ref={headerItemRef}><div className="bp5-skeleton img" /><span className="bp5-skeleton" /></div>
-                    <div className="epg-table-header-item loading"><div className="bp5-skeleton img" /><span className="bp5-skeleton" /></div>
-                    <div className="epg-table-header-item loading"><div className="bp5-skeleton img" /><span className="bp5-skeleton" /></div>
-                    <div className="epg-table-header-item loading"><div className="bp5-skeleton img" /><span className="bp5-skeleton" /></div>
-                    <div className="epg-table-header-item loading"><div className="bp5-skeleton img" /><span className="bp5-skeleton" /></div>
-                    <div className="epg-table-header-item loading"><div className="bp5-skeleton img" /><span className="bp5-skeleton" /></div>
-                    <div className="epg-table-header-item loading"><div className="bp5-skeleton img" /><span className="bp5-skeleton" /></div>
-                    <div className="epg-table-header-item loading"><div className="bp5-skeleton img" /><span className="bp5-skeleton" /></div>
-                    <div className="epg-table-header-item loading"><div className="bp5-skeleton img" /><span className="bp5-skeleton" /></div>
-                    <div className="epg-table-header-item loading"><div className="bp5-skeleton img" /><span className="bp5-skeleton" /></div>
-                    <div className="epg-table-header-item loading"><div className="bp5-skeleton img" /><span className="bp5-skeleton" /></div>
-                    <div className="epg-table-header-item loading"><div className="bp5-skeleton img" /><span className="bp5-skeleton" /></div>
+                    <div className="epg-table-header-item loading" ref={headerItemRef}><div className="bp6-skeleton img" /><span className="bp6-skeleton" /></div>
+                    <div className="epg-table-header-item loading"><div className="bp6-skeleton img" /><span className="bp6-skeleton" /></div>
+                    <div className="epg-table-header-item loading"><div className="bp6-skeleton img" /><span className="bp6-skeleton" /></div>
+                    <div className="epg-table-header-item loading"><div className="bp6-skeleton img" /><span className="bp6-skeleton" /></div>
+                    <div className="epg-table-header-item loading"><div className="bp6-skeleton img" /><span className="bp6-skeleton" /></div>
+                    <div className="epg-table-header-item loading"><div className="bp6-skeleton img" /><span className="bp6-skeleton" /></div>
+                    <div className="epg-table-header-item loading"><div className="bp6-skeleton img" /><span className="bp6-skeleton" /></div>
+                    <div className="epg-table-header-item loading"><div className="bp6-skeleton img" /><span className="bp6-skeleton" /></div>
+                    <div className="epg-table-header-item loading"><div className="bp6-skeleton img" /><span className="bp6-skeleton" /></div>
+                    <div className="epg-table-header-item loading"><div className="bp6-skeleton img" /><span className="bp6-skeleton" /></div>
+                    <div className="epg-table-header-item loading"><div className="bp6-skeleton img" /><span className="bp6-skeleton" /></div>
+                    <div className="epg-table-header-item loading"><div className="bp6-skeleton img" /><span className="bp6-skeleton" /></div>
                 </>}
                 {serviceItems}
             </div>

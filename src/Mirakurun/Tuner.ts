@@ -50,34 +50,51 @@ export class Tuner {
     /**
      * readyFn
      */
-    async readyForJob(channel: ChannelItem): Promise<boolean> {
-        const devices = this._getDevicesByType(channel.type);
+    async readyForJob(channel: ChannelItem[]): Promise<boolean> {
+        /**
+         * チューナーグループとチャンネルの組み合わせが渡される
+         * 想定としては次のように同一チャンネルが映るチューナー情報が渡される
+         * {type: GR, channel: 0}{type: NW1, channel: 17}
+         * ループを回し、GR側が利用中や利用不可の時にNW1側のチューナーを利用する
+         */
+        const devices: TunerDevice[] = []; // チューナーデバイスを格納
+        const channels: ChannelItem[] = []; // チャンネル情報を格納
+
+        for (const ch of channel) {
+            const device = this._getDevicesByType(ch.type);
+            // チューナーと同じ数チャンネル情報を複製
+            for (let index = 0; index < device.length; index++) {
+                devices.push(device[index]);
+                channels.push(ch);
+            }
+        }
+
         if (devices.length === 0) {
-            log.error("readyForJob: no tuners for channel type: %s", channel.type);
+            log.error("readyForJob: no tuners for channel type: %s", channels);
             return false;
         }
 
         while (true) {
             const pickableDevices = devices.filter(device => !this._readyForJobPickedDeviceSet.has(device));
             if (pickableDevices.length === 0) {
-                log.debug("readyForJob: no pickable tuners for channel type: %s", channel.type);
+                log.debug("readyForJob: no pickable tuners for channel type: %s", channels);
                 await common.sleep(1000 * 10);
                 continue;
             }
-            const device = this._pickTunerDevice(pickableDevices, channel, -1);
+            const device = this._pickTunerDevice(pickableDevices, channels, -1);
             if (device === null) {
                 // log.debug("readyForJob: no available tuners for channel type: %s", channel.type);
                 await common.sleep(1000 * 10);
                 continue;
             }
             // pick したチューナーを少し保持する
-            this._readyForJobPickedDeviceSet.add(device);
-            log.debug("readyForJob: picked device: #%d (%s)", device.config.name);
+            this._readyForJobPickedDeviceSet.add(device[0]);
+            log.debug("readyForJob: picked device: #%d (%s)", device[0].config.name);
 
             setTimeout(() => {
                 // 開放
-                this._readyForJobPickedDeviceSet.delete(device);
-                log.debug("readyForJob: released device: #%d (%s)", device.index, device.config.name);
+                this._readyForJobPickedDeviceSet.delete(device[0]);
+                log.debug("readyForJob: released device: #%d (%s)", device[0].index, device[0].config.name);
             }, 1000 * 5);
 
             return true;
@@ -95,10 +112,10 @@ export class Tuner {
         return false;
     }
 
-    initChannelStream(channel: ChannelItem, userReq: common.UserRequest, output: Writable): Promise<TSFilter> {
+    initChannelStream(channel: ChannelItem[], userReq: common.UserRequest, output: Writable): Promise<TSFilter> {
         let networkId: number;
 
-        const services = channel.getServices();
+        const services = channel[0].getServices();
         if (services.length !== 0) {
             networkId = services[0].networkId;
         }
@@ -106,7 +123,7 @@ export class Tuner {
         return this._initTS({
             ...userReq,
             streamSetting: {
-                channel,
+                channel: channel,
                 networkId,
                 parseEIT: true
             }
@@ -138,15 +155,22 @@ export class Tuner {
         }, output);
     }
 
-    async getEPG(channel: ChannelItem, time?: number): Promise<void> {
+    async getEPG(channel: ChannelItem[], time?: number): Promise<void> {
         let timeout: NodeJS.Timeout;
         if (!time) {
             time = _.config.server.epgRetrievalTime || 1000 * 60 * 10;
         }
 
         let networkId: number;
+        let services: apid.Service[] = [];
 
-        const services = channel.getServices();
+        // 渡されてきたチャンネル情報から、最初のチャンネルのサービス情報を取得(どの場所でも同じサービス情報が取得できる)
+        for (const ch of channel) {
+            services.push(...ch.getServices());
+        }
+        // 重複を排除
+        services = [...new Set(services)];
+
         if (services.length === 0) {
             throw new Error("no available services in channel");
         }
@@ -158,7 +182,7 @@ export class Tuner {
             priority: -1,
             disableDecoder: true,
             streamSetting: {
-                channel,
+                channel: channel,
                 networkId,
                 parseEIT: true
             }
@@ -182,13 +206,13 @@ export class Tuner {
         });
     }
 
-    async getServices(channel: ChannelItem, user: Partial<common.User> = {}): Promise<apid.Service[]> {
+    async getServices(channel: ChannelItem[], user: Partial<common.User> = {}): Promise<apid.Service[]> {
         const tsFilter = await this._initTS({
             id: "Mirakurun:getServices()",
             priority: -1,
             disableDecoder: true,
             streamSetting: {
-                channel,
+                channel: channel,
                 parseNIT: true,
                 parseSDT: true
             },
@@ -257,7 +281,7 @@ export class Tuner {
             }
 
             if (Array.isArray(tuner.types) === false) {
-                console.log(tuner);
+                log.debug(tuner);
                 log.error("invalid type of property `types` in tuner#%s configuration", i);
                 return;
             }
@@ -308,8 +332,24 @@ export class Tuner {
             setting.parseEIT = false;
         }
 
-        const devices = this._getDevicesByType(setting.channel.type);
-        let tryCount = 50;
+        /**
+         * チューナーグループとチャンネルの組み合わせが渡される
+         * 想定としては次のように同一チャンネルが映るチューナー情報が渡される
+         * {type: GR, channel: 0}{type: NW1, channel: 17}
+         * ループを回し、GR側が利用中や利用不可の時にNW1側のチューナーを利用する
+         */
+        const devices: TunerDevice[] = []; // チューナーデバイスを格納
+        const channels: ChannelItem[] = []; // チャンネル情報を格納
+
+        for (const ch of setting.channel) {
+            const device = this._getDevicesByType(ch.type);
+            // チューナーと同じ数チャンネル情報を複製
+            for (let index = 0; index < device.length; index++) {
+                devices.push(device[index]);
+                channels.push(ch);
+            }
+        }
+        let tryCount = 10;
 
         if (!dest) {
             const remoteResult = await this._useRemoteData(user, devices);
@@ -319,7 +359,7 @@ export class Tuner {
         }
 
         while (tryCount > 0) {
-            const device = this._pickTunerDevice(devices, setting.channel, user.priority);
+            const device = this._pickTunerDevice(devices, channels, user.priority);
 
             if (device === null) {
                 // retry
@@ -331,12 +371,12 @@ export class Tuner {
             } else {
                 // found
                 let output: Writable;
-                if (user.disableDecoder === true || device.decoder === null) {
+                if (user.disableDecoder === true || device[0].decoder === null) {
                     output = dest;
                 } else {
                     output = new TSDecoder({
                         output: dest,
-                        command: device.decoder
+                        command: device[0].decoder
                     });
                 }
 
@@ -348,7 +388,7 @@ export class Tuner {
                     parseNIT: setting.parseNIT,
                     parseSDT: setting.parseSDT,
                     parseEIT: setting.parseEIT,
-                    tsmfRelTs: setting.channel.tsmfRelTs
+                    tsmfRelTs: device[1].tsmfRelTs
                 });
 
                 Object.defineProperty(user, "streamInfo", {
@@ -356,7 +396,7 @@ export class Tuner {
                 });
 
                 try {
-                    await device.startStream(user, tsFilter, setting.channel);
+                    await device[0].startStream(user, tsFilter, device[1]);
                     return tsFilter;
                 } catch (err) {
                     tsFilter.end();
@@ -394,48 +434,102 @@ export class Tuner {
         return false;
     }
 
-    /**
-     * チューナーデバイス探索
-     */
-    private _pickTunerDevice(
-        devices: TunerDevice[],
-        channel: ChannelItem,
-        priority: number
-    ): TunerDevice | null {
-        // 1. join to existing
-        for (const device of devices) {
-            if (device.isAvailable === true && device.channel === channel) {
-                return device;
-            }
-        }
+/**
+ * 最適なチューナーデバイスを選択する
+ *
+ * @param devices 利用可能なチューナーデバイスのリスト
+ * @param channels チューニングしたいチャンネルのリスト
+ * @param priority このリクエストの優先度
+ * @returns 選択されたチューナーデバイスとチューニングするチャンネルのタプル、または null
+ */
+private _pickTunerDevice(
+    devices: TunerDevice[],
+    channels: ChannelItem[],
+    priority: number // user.priority の代わり
+): [TunerDevice, ChannelItem] | null {
 
-        // 2. start as new
-        for (const device of devices) {
-            if (device.isFree === true) {
-                return device;
-            }
-        }
-
-        // 3. replace existing
-        for (const device of devices) {
-            if (device.isAvailable === true && device.users.length === 0) {
-                return device;
-            }
-        }
-
-        // 4. takeover existing
-        if (priority >= 0) {
-            devices.sort((t1, t2) => t1.getPriority() - t2.getPriority());
-            for (const device of devices) {
-                if (device.isUsing === true && device.getPriority() < priority) {
-                    return device;
-                }
-            }
-        }
-
+    // チャンネルリストが空なら何も選択できない
+    if (channels.length === 0) {
+        console.warn("チャンネルリストが空のため、デバイスを選択できませんでした。");
         return null;
     }
 
+    // --- 選択ロジック開始 ---
+    let selectedDevice: TunerDevice | null = null;
+    let selectedChannel: ChannelItem | null = null;
+
+    // 1. join to existing: 既に目的のチャンネルに合っているデバイスを探す
+    for (const device of devices) {
+        // device.channel が null でなく、かつ channels 配列内に存在するかチェック
+        if (device.channel && device.isAvailable /* または isUsing? */) {
+            const matchedChannel = channels.find(ch => ch === device.channel); // id などで比較
+            if (matchedChannel) {
+                selectedDevice = device;
+                selectedChannel = matchedChannel;
+                log.debug(`Found existing device ${selectedDevice.config.name} for channel ${selectedChannel.channel}`);
+                break; // 見つかったらループを抜ける
+            }
+        }
+    }
+
+    // 2. start as new: 完全に空いているデバイスを探す
+    if (selectedDevice === null) {
+        for (let i = 0; i < devices.length; i++) {
+            if (devices[i].isFree === true) {
+                selectedDevice = devices[i];
+                selectedChannel = channels[i];
+                log.debug(`Found free device ${selectedDevice.config.name} for new channel ${selectedChannel.channel}`);
+                break; // 見つかったらループを抜ける
+            }
+        }
+    }
+
+    // 3. replace existing: チューニング済みだが誰も使っていないデバイスを探す
+    if (selectedDevice === null) {
+        for (let i = 0; i < devices.length; i++) {
+            // isAvailable が true で、かつ users が空の場合
+            if (devices[i].isAvailable === true && devices[i].users.length === 0) {
+                selectedDevice = devices[i];
+                selectedChannel = channels[i];
+                log.debug(`Found idle device ${selectedDevice.config.name} to replace for channel ${selectedChannel.channel}`);
+                break; // 見つかったらループを抜ける
+            }
+        }
+    }
+
+    // 4. takeover existing: 使用中だが優先度が低いデバイスを乗っ取る
+    if (selectedDevice === null && priority >= 0) { // priority が負でない場合のみ乗っ取り
+        // 優先度が低い順にソート (元の配列を変更しないようにコピーを作成)
+        const tmp: number[] = []; // 優先度の差を保存するための配列
+        const sortedDevices = [...devices].sort((t1, t2) => {
+            const diff = t1.getPriority() - t2.getPriority();
+            tmp.push(diff);
+            return diff;
+        });
+
+        const sortedChannels = [...channels].sort(() => {
+            return tmp.shift();
+        });
+
+        for (let i = 0; i < sortedDevices.length; i++) {
+            // isUsing で、かつ現在の優先度がリクエストの優先度より低い場合
+            if (sortedDevices[i].isUsing === true && sortedDevices[i].getPriority() < priority) {
+                selectedDevice = sortedDevices[i];
+                selectedChannel = sortedChannels[i]; // 乗っ取るチャンネル
+                log.debug(`Taking over lower priority device ${selectedDevice.config.name} (priority ${selectedDevice.getPriority()}) for channel ${selectedChannel.channel} (request priority ${priority})`);
+                break; // 見つかったらループを抜ける
+            }
+        }
+    }
+
+    // --- 結果を返す ---
+    if (selectedDevice && selectedChannel) {
+        return [selectedDevice, selectedChannel];
+    } else {
+        // log.debug("利用可能なチューナーデバイスが見つかりませんでした（指定された優先順位内）。");
+        return null;
+    }
+}
     private _getDevicesByType(type: apid.ChannelType): TunerDevice[] {
         const devices = [];
 

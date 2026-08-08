@@ -36,13 +36,13 @@ export const get: Operation = async (req, res) => {
         return;
     }
 
-    if (typeof service.logoId !== "number" || service.logoId < 0) {
+    if (typeof service.logoId !== "number" || service.logoId < -1) {
         res.writeHead(503, "Logo Data Unavailable");
         res.end();
         return;
     }
 
-    const logoData = await Service.loadLogoData(service.networkId, service.logoId);
+    const logoData = await Service.loadLogoData(service.networkId, service.serviceId, service.logoId);
     if (logoData) {
         res.setHeader("Content-Type", "image/png");
         res.setHeader("Cache-Control", "public, max-age=86400");

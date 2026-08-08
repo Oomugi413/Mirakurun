@@ -26,7 +26,7 @@ export const ProgramGenres: React.FC<ProgramGenresProps> = ({ genres }) => {
     // console.debug("components", "ProgramGenres");
 
     const lv1Set = new Set<number>();
-    const labels: JSX.Element[] = [];
+    const labels: React.JSX.Element[] = [];
     for (const genre of genres) {
         const lv1Text = Genre1Map[genre.lv1];
         if (!lv1Text) {

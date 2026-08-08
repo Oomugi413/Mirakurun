@@ -227,7 +227,7 @@ export class Program {
             ) {
                 const itemEndAt = item.startAt + item.duration;
                 if ((
-                        (added.startAt <= item.startAt && item.startAt < addedEndAt) ||
+                    (added.startAt <= item.startAt && item.startAt < addedEndAt) ||
                         (item.startAt <= added.startAt && added.startAt < itemEndAt)
                     ) &&
                     (!(item._isPresent || item._isFollowing) || added._isPresent)

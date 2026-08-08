@@ -16,7 +16,7 @@
 import * as React from "react";
 import { useState, useEffect } from "react";
 import { createRoot } from "react-dom/client";
-import { BrowserRouter, Routes, Route, NavLink, useNavigate, useLocation } from "react-router-dom";
+import { BrowserRouter, Routes, Route, NavLink, useNavigate, useLocation } from "react-router";
 import { FocusStyleManager } from "@blueprintjs/core";
 FocusStyleManager.onlyShowFocusOnTabs();
 import { DateTime, Settings as LuxonSettings } from "luxon";

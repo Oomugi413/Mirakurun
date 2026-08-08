@@ -102,7 +102,7 @@ export function initRPCNotifier(rpcs: Set<RPCServer>): void {
 class NotifyManager<T> {
     private _items = new Set<T>();
     private _active = false;
-    constructor(private _room: string, private _method: string, private _rpcs: Set<RPCServer>) {}
+    constructor(private _room: string, private _method: string, private _rpcs: Set<RPCServer>) { }
     async notify(item: T) {
         this._items.add(item);
         if (this._active) {
@@ -193,7 +193,7 @@ async function getServices() {
     for (const serviceItem of serviceItems) {
         services.push({
             ...serviceItem.export(),
-            hasLogoData: await Service.isLogoDataExists(serviceItem.networkId, serviceItem.logoId)
+            hasLogoData: await Service.isLogoDataExists(serviceItem.networkId, serviceItem.serviceId, serviceItem.logoId)
         });
     }
 

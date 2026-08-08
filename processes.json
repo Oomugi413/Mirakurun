@@ -7,7 +7,7 @@
       "error_file": "/usr/local/var/log/mirakurun.stderr.log",
       "out_file": "/usr/local/var/log/mirakurun.stdout.log",
       "merge_logs": true,
-      "pid_file": "/usr/local/var/run/mirakurun.pid",
+      "pid_file": "./local_data/mirakurun.pid",
       "exec_mode": "fork",
       "autorestart": true,
       "env": {

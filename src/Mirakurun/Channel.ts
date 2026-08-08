@@ -96,10 +96,10 @@ export class Channel {
                 return;
             }
 
-            if (channel.type !== "GR" && channel.type !== "BS" && channel.type !== "CS" && channel.type !== "SKY") {
-                log.error("invalid type of property `type` in channel#%d (%s) configuration", i, channel.name);
-                return;
-            }
+            // if (channel.type !== "GR" && channel.type !== "BS" && channel.type !== "CS" && channel.type !== "SKY" && channel.type !== "NW1" && channel.type !== "NW2" && channel.type !== "NW3" && channel.type !== "NW4" && channel.type !== "NW5" && channel.type !== "NW6") {
+            //     log.error("invalid type of property `type` in channel#%d (%s) configuration", i, channel.name);
+            //     return;
+            // }
 
             if (typeof channel.channel !== "string") {
                 log.error("invalid type of property `channel` in channel#%d (%s) configuration", i, channel.name);

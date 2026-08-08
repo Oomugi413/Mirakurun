@@ -1,0 +1,52 @@
+- name: local_device
+  types:
+    - GR
+  command: >-
+    C:/DTV/BonDriver/BonRecTest.exe --driver BonDriver_PX4-T.dll --output -
+    --space <space> --channel <channel>
+  decoder: C:/DTV/BonDriver/arib-b25-stream-test.exe
+  isDisabled: false
+- name: local_device
+  types:
+    - GR
+  command: >-
+    C:/DTV/BonDriver/BonRecTest.exe --driver BonDriver_PX4-T.dll --output -
+    --space <space> --channel <channel>
+  decoder: C:/DTV/BonDriver/arib-b25-stream-test.exe
+  isDisabled: false
+- name: local_device
+  types:
+    - BS
+    - CS
+  command: >-
+    C:/DTV/BonDriver/BonRecTest.exe --driver BonDriver_PX4-S.dll --output -
+    --space <space> --channel <channel>
+  decoder: C:/DTV/BonDriver/arib-b25-stream-test.exe
+  isDisabled: false
+- name: local_device
+  types:
+    - BS
+    - CS
+  command: >-
+    C:/DTV/BonDriver/BonRecTest.exe --driver BonDriver_PX4-S.dll --output -
+    --space <space> --channel <channel>
+  decoder: C:/DTV/BonDriver/arib-b25-stream-test.exe
+  isDisabled: false
+
+- name: 拠点1-NW
+  types:
+    - NW1
+  command: >-
+    C:/DTV/BonDriver_NW/BonRecTest.exe --driver BonDriver_EPGStation.dll --output -
+    --space <space> --channel <channel>
+  decoder: ~
+  isDisabled: false
+
+- name: 拠点1-NW
+  types:
+    - NW1
+  command: >-
+    C:/DTV/BonDriver_NW/BonRecTest.exe --driver BonDriver_EPGStation.dll --output -
+    --space <space> --channel <channel>
+  decoder: ~
+  isDisabled: false

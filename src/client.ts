@@ -15,6 +15,7 @@
 */
 import * as fs from "fs";
 import * as http from "http";
+import * as https from "https";
 import * as querystring from "querystring";
 import * as yaml from "js-yaml";
 import { OpenAPIV2 } from "openapi-types";
@@ -111,7 +112,8 @@ export class Client {
     priority = 0;
     host = "";
     port = 40772;
-    socketPath = "/var/run/mirakurun.sock";
+    https = false;
+    socketPath = process.platform === "win32" ? "\\\\.\\pipe\\mirakurun" : "/var/run/mirakurun.sock";
     agent: http.Agent | boolean;
     /** provide User-Agent string to identify client. */
     userAgent = "";
@@ -557,7 +559,7 @@ export class Client {
         }
 
         return new Promise((resolve, reject) => {
-            const req = http.request(opt, res => {
+            const onResponse = (res: http.IncomingMessage) => {
                 if (res.statusCode > 300 && res.statusCode < 400 && res.headers.location) {
                     if (/^\//.test(res.headers.location) === false) {
                         reject(new Error(`Redirecting location "${res.headers.location}" isn't supported.`));
@@ -569,7 +571,9 @@ export class Client {
                 }
 
                 resolve(res);
-            });
+            };
+
+            const req = this.https === true ? https.request(opt, onResponse) : http.request(opt, onResponse);
 
             if (option.signal) { // instanceof AbortSignal
                 // workaround

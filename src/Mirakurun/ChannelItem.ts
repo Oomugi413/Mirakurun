@@ -40,6 +40,6 @@ export default class ChannelItem {
     }
 
     getStream(user: common.User, output: stream.Writable): Promise<TSFilter> {
-        return _.tuner.initChannelStream(this, user, output);
+        return _.tuner.initChannelStream([this], user, output);
     }
 }

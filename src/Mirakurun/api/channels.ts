@@ -33,7 +33,7 @@ export const get: Operation = (req, res) => {
         }));
 
         return ch;
-    }).filter(sift(req.query));
+    }).filter(sift({ ...req.query }));
 
     api.responseJSON(res, channels);
 };

@@ -28,7 +28,7 @@ type ProgramPopoverProps<T = {}> = {
     className?: string;
     portalContainer?: HTMLElement;
     defaultIsOpen?: boolean;
-    renderTarget: (props: PopoverTargetProps & T) => JSX.Element;
+    renderTarget: (props: PopoverTargetProps & T) => React.JSX.Element;
 };
 export const ProgramPopover: React.FC<ProgramPopoverProps> = ({ program, renderTarget, className = "", defaultIsOpen = false, ...props }) => {
     // console.debug("components", "ProgramPopover");
@@ -51,7 +51,7 @@ export const ProgramPopover: React.FC<ProgramPopoverProps> = ({ program, renderT
     if (className) {
         className += " ";
     }
-    className += "bp5-dark";
+    className += "bp6-dark";
 
     return (
         <Popover {...props}

@@ -2,6 +2,33 @@
 
 see [Commit Logs](https://github.com/Chinachu/Mirakurun/commits/master) to check all.
 
+## 4.2.0 (2026-07-26)
+
+依存パッケージの一括更新です。破壊的変更への対応と `overrides` の意図は [依存パッケージ / 更新メモ](doc/Dependencies.ja.md) にまとめています。
+
+### Security
+
+- 🔒 `react-router` の CSRF バイパス (GHSA-qwww-vcr4-c8h2) を解消 (*high*)
+- 🔒 `brace-expansion` の DoS (GHSA-mh99-v99m-4gvg) を overrides で解消 (*high*)
+- 🔒 `redoc` 配下の `js-yaml` の CPU 二次爆発 (GHSA-52cp-r559-cp3m) を overrides で解消 (*high*)
+
+### Server
+
+- 🆙 Express `4.22.2` → `5.2.1`
+  - 👾 Express 5 で `req.query` が null プロトタイプになり `sift` が例外を投げるため、展開して渡すよう修正 (*bug*)
+- 🆙 TypeScript `5.7` → `6.0.3`
+  - `rootDir` の明示と `strict: false` の明示が必要になったため `tsconfig.json` を更新
+- 🆙 eventemitter3 `4.0.7` → `5.0.4`、ip-num `1.3.4` → `1.6.1`、js-yaml `4.1.1` → `5.2.2`、sift `15.1.3` → `17.1.3`、dotenv `8.6.0` → `17.4.2`、openapi-types `7.2.3` → `12.1.3`、cors / semver / jsonrpc2-ws
+
+### UI
+
+- 🆙 React `18.3.1` → `19.2.8`
+- 🆙 React Router `7` → `8`
+  - v8 で `react-router-dom` が発行されなくなったため、`react-router` への直接依存に変更
+- 🆙 Blueprint `5` → `6`
+  - CSS クラス接頭辞の変更 (`bp5-` → `bp6-`) に追従
+- 🆙 webpack-cli `4` → `7`、css-loader `5` → `7`、style-loader `2` → `4`、sass-loader `16` → `17`
+
 ## 4.1.3 (2026-06-28)
 
 ### Docker

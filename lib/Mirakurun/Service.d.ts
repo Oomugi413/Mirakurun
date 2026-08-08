@@ -1,0 +1,30 @@
+import ChannelItem from "./ChannelItem";
+import ServiceItem from "./ServiceItem";
+export declare class Service {
+    static getLogoDataPath(networkId: number, serviceId: number, logoId: number): string;
+    static getLogoDataMTime(networkId: number, serviceId: number, logoId: number): Promise<number>;
+    static isLogoDataExists(networkId: number, serviceId: number, logoId: number): Promise<boolean>;
+    static loadLogoData(networkId: number, serviceId: number, logoId: number): Promise<Buffer>;
+    static saveLogoData(networkId: number, serviceId: number, logoId: number, data: Uint8Array, retrying?: boolean): Promise<void>;
+    private _items;
+    private _saveTimerId;
+    get items(): ServiceItem[];
+    add(item: ServiceItem): void;
+    get(id: number): ServiceItem;
+    get(networkId: number, serviceId: number): ServiceItem;
+    exists(id: number): boolean;
+    exists(networkId: number, serviceId: number): boolean;
+    findByChannel(channel: ChannelItem): ServiceItem[];
+    findByNetworkId(networkId: number): ServiceItem[];
+    findByNetworkIdWithLogoId(networkId: number, logoId: number): ServiceItem[];
+    save(): void;
+    load(): Promise<void>;
+    private _initJobs;
+    private _save;
+    private _queueCheckToAdd;
+    private _queueScanToAdd;
+    private _queueScanToUpdate;
+    private _checkToAdd;
+    private _scan;
+}
+export default Service;

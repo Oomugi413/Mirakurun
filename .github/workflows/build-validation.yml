@@ -1,0 +1,43 @@
+name: build
+
+on:
+  push:
+    branches: [master, stuayu-main, dev, feature/4.0.0-windows]
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: build-${{matrix.os}}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macOS-latest]
+        node-version: [24.x]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          path: Mirakurun
+
+      - name: Use Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v7
+        with:
+          node-version: ${{ matrix.node-version }}
+
+      - name: Mirakurun build and install
+        working-directory: Mirakurun
+        run: |
+          npm install
+          npm run build
+
+      - name: Compress Project
+        run: |
+          7z a -t7z -mx=9 -m0=lzma2 -md=256m -mfb=273 -ms=on Mirakurun-${{ matrix.os }}-${{ matrix.node-version }}.7z ./Mirakurun
+
+      - name: Upload Project as Artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: Mirakurun-${{ matrix.os }}-${{ matrix.node-version }}.7z
+          path: Mirakurun-${{ matrix.os }}-${{ matrix.node-version }}.7z

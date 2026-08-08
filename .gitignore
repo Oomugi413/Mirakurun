@@ -1,5 +1,5 @@
 /node_modules
-/lib
+# /lib
 /tmp
 /*.0x
 .env
@@ -11,4 +11,8 @@
 *.tsbuildinfo
 test.*
 .DS_Store
+local_config/*.yml
+local_data/*
+package-lock.json
+/bin/daemon
 .codegraph
