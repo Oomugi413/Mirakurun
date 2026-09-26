@@ -1,12 +1,12 @@
 # https://aka.ms/yaml
 
-trigger:
-  branches:
-    include:
-    - master
-    - feature/*
-    - release/*
-    - refs/tags/*.*.*
+# trigger:
+#   branches:
+#     include:
+#     - master
+#     - feature/*
+#     - release/*
+#     - refs/tags/*.*.*
 
 pr:
   branches:

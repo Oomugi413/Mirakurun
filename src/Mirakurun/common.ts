@@ -46,7 +46,7 @@ export interface StreamInfo {
     };
 }
 
-export const channelTypes: apid.ChannelType[] = ["GR", "BS", "CS", "SKY"];
+export const channelTypes: apid.ChannelType[] = ["GR", "BS", "CS", "SKY", "BS4K"];
 
 export class WhereQueryError extends Error {
     readonly code = "WHERE_QUERY";
